@@ -1,8 +1,8 @@
 %% Connect to Turtlebot
 % Connect to an External ROS Master
 %%% ip address of TurtleBot and Matlab, replace these values accordingly
-ip_TurtleBot = '23.28.1.142';    
-ip_Matlab = '192.168.1.100';      
+ip_TurtleBot = '10.0.1.57';    
+ip_Matlab = '10.0.1.54';      
 
 setenv('ROS_MASTER_URI', strcat('http://', ip_TurtleBot,':11311'))
 setenv('ROS_IP', ip_Matlab)

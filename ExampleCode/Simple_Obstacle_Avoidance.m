@@ -1,5 +1,13 @@
 % Simple Obstacle Avoidance
+rosshutdown;
 
+ip_TurtleBot = '10.0.1.57';    
+ip_Matlab = '10.0.1.54';      
+
+setenv('ROS_MASTER_URI', strcat('http://', ip_TurtleBot,':11311'))
+setenv('ROS_IP', ip_Matlab)
+
+rosinit(ip_TurtleBot)
 %%% CONNECT TO TURTLEBOT FIRST!!!
 if ismember(TurtleBot_Topic.laser, rostopic('list'))
     laser_sub = rossubscriber('/scan');
