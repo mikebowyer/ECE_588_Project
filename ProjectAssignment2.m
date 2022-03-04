@@ -16,7 +16,6 @@ image_compressed = receive(image_sub);
 %%% to display a continuously updating image from Pi camera
 tic;
 while toc < 20  
-    %%
     %%% Edge detector
     %%% Takes raw image and isolated the line
     % 
@@ -43,4 +42,3 @@ while toc < 20
     %follow line
     %will require an object to store the state
 end
-
