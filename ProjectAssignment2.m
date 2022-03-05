@@ -1,5 +1,5 @@
-ip_TurtleBot = '10.0.1.57';    
-ip_Matlab = '10.0.1.54';      
+ip_TurtleBot = '127.0.0.1';    
+ip_Matlab = '127.0.0.1 ';      
 
 setenv('ROS_MASTER_URI', strcat('http://', ip_TurtleBot,':11311'))
 setenv('ROS_IP', ip_Matlab)
@@ -7,38 +7,117 @@ setenv('ROS_IP', ip_Matlab)
 rosinit(ip_TurtleBot)
 %%
 
-rostopic info /raspicam_node/image/compressed
-msg_camera = rostopic("echo", "/raspicam_node/image/compressed")
-TurtleBot_Topic.picam = '/raspicam_node/image/compressed';
+TurtleBot_Topic.picam = "/camera/rgb/image_raw/compressed";
+%TurtleBot_Topic.picam = "/raspicam_node/image/compressed";
 image_sub = rossubscriber(TurtleBot_Topic.picam);
-image_compressed = receive(image_sub);
 %%
 %%% to display a continuously updating image from Pi camera
-tic;
-while toc < 20  
-    %%% Edge detector
-    %%% Takes raw image and isolated the line
-    % 
-    % Brandon's task, should try out the other camera
+%%
+close all
+figure, hold on
+while true 
+    % Get, rotate, and crop image
+    image = grabAndCleanUpImage(image_sub);
+    % Hough Transform to Get Lines
+    lines = IsolateGroundLines(image);
+    PlotGroundLines(image, lines);
+    % Getting Line of Best Fit from Hough Lines
+    coefficients = BestFitLine(lines);
+    PlotBestFitLine(coefficients)
+    % Converting line of best fit coeffiencts to intercept and slope
+    %intercept, theta = convertLineOfBestFit(coefficients)
+    % Control the boto
+    %sendControlMsg(intercept, theta)
+end
+     
+%%
+
+function image = grabAndCleanUpImage(image_sub)
     image_compressed = receive(image_sub);
     image_compressed.Format = 'bgr8; jpeg compressed bgr8';
-    rotatedImage = imrotate(readImage(image_compressed), 180);
-    subplot(211); imshow(rotatedImage)
-    subplot(212); imshow(edge(rgb2gray(rotatedImage), 'canny'))
-    %%
-    %input: the binary image containing only the line
-    %Output: delta angle between robot heading and line, and the bottom of
-    %image intercept
-    %Once binary image is created, determin position
-    %assume that we will be following a single line
-    %find delta between current heading of robot - correct so line is at same
-    %angle as robot's heading
+    rotatedImage = imrotate(readImage(image_compressed), 0);
+    %eliminate the upper half of the image
+    image = imcrop(rotatedImage, [0, 240, 640, 480]);
+end
+function lines = IsolateGroundLines(image)
+    cannyImage = edge(rgb2gray(image), 'canny');
+    subplot(221); imshow(image)
+    subplot(222); imshow(cannyImage)
+    subplot(223); imshow(image)
+    subplot(224); imshow(image)
+    [H, T, R] = hough(cannyImage, 'Theta', -45:0.5:45);
+    P = houghpeaks(H,20, 'Theta', 0:0.5:80);
+    lines = houghlines(cannyImage,T,R,P,'FillGap', 15, 'MinLength', 50);
     
-    %%
-    %input: angle delta between robot and line and bottom of image intercept
-    %output: twist message in ROS to steer the robot
-    %PID control - angle gets passed to this and must be corrected for
-    %Determine if we are on the line, and if not get back on the line, then
-    %follow line
-    %will require an object to store the state
+end
+
+function PlotGroundLines(image, lines)
+    imshow(image), hold on
+    max_len = 0;
+    for k = 1:length(lines)
+       xy = [lines(k).point1; lines(k).point2];
+       subplot(223);plot(xy(:,1),xy(:,2),'LineWidth',2,'Color','green');
+    
+       % Plot beginnings and ends of lines
+       subplot(223);plot(xy(1,1),xy(1,2),'x','LineWidth',2,'Color','yellow');
+       subplot(223);plot(xy(2,1),xy(2,2),'x','LineWidth',2,'Color','red');
+    
+       % Determine the endpoints of the longest line segment
+%        len = norm(lines(k).point1 - lines(k).point2);
+%        if ( len > max_len)
+%          max_len = len;
+%          xy_long = xy;
+%        end
+    end  
+end
+
+function DetermineRoughlyParallelLines(colorImage, lines)
+    %filledInImage = colorImage;  %what to return if nothing is found
+    figure, imshow(colorImage), hold on
+    for j = 1:length(lines)
+        for k = 1:length(lines)
+            if j ~= k
+                if lines(j).theta >= (lines(k).theta - 5) & lines(j).theta <= (lines(k).theta + 5)
+                    %lines are roughly parallel, get average lines of two
+                    averageLinePoint1x = round(mean(lines(j).point1(1), lines(k).point1(1)))
+                    averageLinePoint1y = round(mean(lines(j).point1(2), lines(k).point1(2)))
+                    averageLinePoint2x = round(mean(lines(j).point2(1), lines(k).point2(1)))
+                    averageLinePoint2y = round(mean(lines(j).point2(2), lines(k).point2(2)))
+                    %create line between two points
+                    plot(averageLinePoint1x,averageLinePoint1y,'x','LineWidth',2,'Color','yellow');
+                    plot(averageLinePoint2x,averageLinePoint2y,'x','LineWidth',2,'Color','red');
+                end
+            end
+        end
+    end
+end
+
+function coefficients = BestFitLine(lines)
+    coefficients = 0;
+    if length(lines) ~= 0
+        xy = zeros;
+        for k = 1:length(lines)
+            xyNew = [lines(k).point1; lines(k).point2];
+            if k == 1
+                xy = xyNew;
+            else
+                xy = cat(1,xy,xyNew);
+            end
+        end
+        coefficients = polyfit(xy(:,1),xy(:,2), 1);
+    end
+end
+
+function PlotBestFitLine(coefficients)
+    y1 = polyval(coefficients,1);
+    y2 = polyval(coefficients,640);
+    hold on
+    subplot(224);plot([1, 640],[y1, y2],'LineWidth',2,'Color','red');
+end
+
+function intercept, theta = convertLineOfBestFit(coefficients)
+
+end
+
+function sendControlMsg(intercept, theta)
 end
