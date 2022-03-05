@@ -29,7 +29,8 @@ while true
 
     lines = IsolateGroundLines(cutImage);
     PlotGroundLines(cutImage, lines);
-    BestFitLine(lines);
+    coefficients = BestFitLine(lines);
+    PlotBestFitLine(coefficients)
     %DetermineRoughlyParallelLines(cutImage, lines);
     %clf;
 end
@@ -102,7 +103,7 @@ function DetermineRoughlyParallelLines(colorImage, lines)
     end
 end
 
-function BestFitLine(lines)
+function coefficients = BestFitLine(lines)
     xy = zeros;
     for k = 1:length(lines)
         xyNew = [lines(k).point1; lines(k).point2];
@@ -112,8 +113,14 @@ function BestFitLine(lines)
             xy = cat(1,xy,xyNew);
         end
     end
-    xy;
     coefficients = polyfit(xy(:,1),xy(:,2), 1);
+    y1 = polyval(coefficients,1);
+    y2 = polyval(coefficients,640);
+    hold on
+    plot([1, 640],[y1, y2],'LineWidth',2,'Color','red');
+end
+
+function PlotBestFitLine(coefficients)
     y1 = polyval(coefficients,1);
     y2 = polyval(coefficients,640);
     hold on
