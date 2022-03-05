@@ -34,7 +34,7 @@ while toc < 20
     % find delta between current heading of robot - correct so line is at same
     % angle as robot's heading
 
-    
+    %% function call every few milliseconds to request
     
     %%
     %input: angle delta between robot and line and bottom of image intercept

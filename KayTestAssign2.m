@@ -28,6 +28,14 @@ offsetY = start_row-1;
 
 %% Step 3: Threshold the Image (already completed by Brandon)
 
-%% Find Initial Point on Each Boundary
+%% Step 4: Find Initial Point on Each Boundary
+
+%% Step 5: Trace Boundaries
+
+%% Step 7: Find Angle of Intersection
+
+%% Step 8: Find the Point of Intersection
+
+%% Step 9: Plot & Return values from step 7 & 8
 
 
