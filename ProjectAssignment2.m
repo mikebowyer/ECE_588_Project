@@ -17,14 +17,37 @@ image_compressed = receive(image_sub);
 tic;
 while toc < 20  
     %%% Edge detector
-    %%% Takes raw image and isolated the line
+    %%% Takes raw image and isolates the line
     % 
     % Brandon's task, should try out the other camera
     image_compressed = receive(image_sub);
     image_compressed.Format = 'bgr8; jpeg compressed bgr8';
     rotatedImage = imrotate(readImage(image_compressed), 180);
-    subplot(211); imshow(rotatedImage)
-    subplot(212); imshow(edge(rgb2gray(rotatedImage), 'canny'))
+    %eliminate the upper half of the image
+    cutImage = imcrop(rotatedImage, [0, 240, 640, 480]);
+    cannyImage = edge(rgb2gray(cutImage), 'canny');
+    subplot(211); imshow(cutImage)
+    subplot(212); imshow(cannyImage)
+    [H, T, R] = hough(cannyImage, 'Theta', 0:0.5:80)
+    P = houghpeaks(H,20, 'Theta', 0:0.5:80)
+    lines = houghlines(cannyImage,T,R,P)
+    figure, imshow(cutImage), hold on
+    max_len = 0;
+    for k = 1:length(lines)
+       xy = [lines(k).point1; lines(k).point2];
+       plot(xy(:,1),xy(:,2),'LineWidth',2,'Color','green');
+    
+       % Plot beginnings and ends of lines
+       plot(xy(1,1),xy(1,2),'x','LineWidth',2,'Color','yellow');
+       plot(xy(2,1),xy(2,2),'x','LineWidth',2,'Color','red');
+    
+       % Determine the endpoints of the longest line segment
+       len = norm(lines(k).point1 - lines(k).point2);
+       if ( len > max_len)
+          max_len = len;
+          xy_long = xy;
+       end
+    end
     %%
     %input: the binary image containing only the line
     %Output: delta angle between robot heading and line, and the bottom of
