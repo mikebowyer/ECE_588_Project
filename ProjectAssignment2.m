@@ -26,13 +26,15 @@ while toc < 20
     subplot(211); imshow(rotatedImage)
     subplot(212); imshow(edge(rgb2gray(rotatedImage), 'canny'))
     %%
-    %input: the binary image containing only the line
-    %Output: delta angle between robot heading and line, and the bottom of
-    %image intercept
-    %Once binary image is created, determin position
-    %assume that we will be following a single line
-    %find delta between current heading of robot - correct so line is at same
-    %angle as robot's heading
+    % input: the binary image containing only the line
+    % Output: delta angle between robot heading and line, and the bottom of
+    % image intercept
+    % Once binary image is created, determine position
+    % assume that we will be following a single line
+    % find delta between current heading of robot - correct so line is at same
+    % angle as robot's heading
+
+    
     
     %%
     %input: angle delta between robot and line and bottom of image intercept
