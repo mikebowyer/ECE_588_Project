@@ -115,9 +115,14 @@ function PlotBestFitLine(coefficients)
     subplot(224);plot([1, 640],[y1, y2],'LineWidth',2,'Color','red');
 end
 
-function intercept, theta = convertLineOfBestFit(coefficients)
+% Funtion written by kay
+function [intercept, theta] = convertLineOfBestFit(coefficients)
+
+intercept = 0;
+theta = 0;
 
 end
 
 function sendControlMsg(intercept, theta)
+
 end
