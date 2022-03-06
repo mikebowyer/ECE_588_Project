@@ -3,17 +3,34 @@
 clear
 clc
 image_sub = imread('TestRawImage.jpeg');
-imshow(image_sub)
+%imshow(image_sub)
 
 %%
-figure, hold on
+%figure, hold on
     % ------ Get, rotate, and crop image
     image = imcrop(image_sub, [0, 240, 680, 480]);
     imshow(image)
     % ------ Hough Transform to Get Lines
-    lines = IsolateGroundLines(image);
-    
+    cannyImage = edge(rgb2gray(image), 'canny');
+    subplot(221); imshow(image)
+    subplot(222); imshow(cannyImage)
+    subplot(223); imshow(image)
+    subplot(224); imshow(image)
+    [H, T, R] = hough(cannyImage, 'Theta', -30:0.5:30);
+    P = houghpeaks(H,20, 'Theta', 0:0.5:80);
+    lines = houghlines(cannyImage,T,R,P,'FillGap', 15, 'MinLength', 50);
+
     %PlotGroundLines(image, lines);
+    max_len = 0;
+    for k = 1:length(lines)
+       xy = [lines(k).point1; lines(k).point2];
+       subplot(223);plot(xy(:,1),xy(:,2),'LineWidth',2,'Color','green');
+    
+       % Plot beginnings and ends of lines
+       subplot(223);plot(xy(1,1),xy(1,2),'x','LineWidth',2,'Color','yellow');
+       subplot(223);plot(xy(2,1),xy(2,2),'x','LineWidth',2,'Color','red');
+    end
+
     % Getting Line of Best Fit from Hough Lines
     %-->coefficients = BestFitLine(lines);
     %-->PlotBestFitLine(coefficients)
@@ -38,14 +55,14 @@ function lines = IsolateGroundLines(image)
     subplot(222); imshow(cannyImage)
     subplot(223); imshow(image)
     subplot(224); imshow(image)
-    [H, T, R] = hough(cannyImage, 'Theta', -45:0.5:45);
+    [H, T, R] = hough(cannyImage, 'Theta', -30:0.5:30);
     P = houghpeaks(H,20, 'Theta', 0:0.5:80);
     lines = houghlines(cannyImage,T,R,P,'FillGap', 15, 'MinLength', 50);
     
 end
 
 function PlotGroundLines(image, lines)
-    imshow(image), hold on
+    %imshow(image), hold on
     max_len = 0;
     for k = 1:length(lines)
        xy = [lines(k).point1; lines(k).point2];
@@ -79,6 +96,7 @@ function coefficients = BestFitLine(lines)
         coefficients = polyfit(xy(:,1),xy(:,2), 1);
     end
 end
+
 
 function PlotBestFitLine(coefficients)
     y1 = polyval(coefficients,1);
