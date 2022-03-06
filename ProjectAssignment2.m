@@ -18,6 +18,7 @@ figure, hold on
 while true 
     % Get, rotate, and crop image
     image = grabAndCleanUpImage(image_sub);
+    [img_height, img_width]= imageSizeFinder(image);
     % Hough Transform to Get Lines
     lines = IsolateGroundLines(image);
     PlotGroundLines(image, lines);
@@ -25,7 +26,8 @@ while true
     coefficients = BestFitLine(lines);
     PlotBestFitLine(coefficients)
     % Converting line of best fit coeffiencts to intercept and slope
-    %intercept, theta = convertLineOfBestFit(coefficients)
+    theta = convertLineOfBestFit(coefficients)
+    pixels_from_img_center = findInterceptFromImgCenter(coefficients, img_height, img_width)
     % Control the boto
     %sendControlMsg(intercept, theta)
 end
@@ -143,29 +145,17 @@ function theta = convertLineOfBestFit(coefficients)
 end
 
 % returns offset via x-intercept with hottom horizontal edge of image
-function x_intercept = findBottonIntercept(coefficients)
-
-    x_intercept = 0;
-    x = [0:1:250];
+function pixels_from_img_center = findInterceptFromImgCenter(coefficients, img_height, img_width)
+    %x = [0:1:250];
+    y = img_height;
     % plot the line of robot path given coefficents
-    y = x*coefficients(1) + coefficients(2);
+    x_intercept = (y - coefficients(2)) / coefficients(1);
+    pixels_from_img_center = x_intercept - (img_width /2);
     %hold on, subplot(2,1,2) 
     %plot(y,x)
     %xlim([0 600])
     %ylim([0 250])
-    x_intercept = y(1); %first index value 
-
-end
-
-% returns negative pixel offset value from x_intercept if path line is left
-% of robot current position
-% returns positive pizel offset value from x_intercept if path line is
-% right of robot current posiont
-function centerOffset = imageCenterOffsetFinder(width)
-
-    %half width is center of image
-    centerOffset = -30; %hard code dummy value
-
+    %x_intercept = y(1); %first index value 
 
 end
 
@@ -175,5 +165,4 @@ function [height, width] = imageSizeFinder(image)
     imageSize = size(image);
     height = imageSize(1); % number of pixels vertically of cropped image
     width = imageSize(2); % number of pixels horizontally of cropped image
-    
 end
