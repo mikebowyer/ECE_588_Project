@@ -9,7 +9,7 @@ coefficients = [-2, 187];
 pathAngle = convertLineOfBestFit(coefficients);
 
 %% test robot path line overlay with image
-overlayImage = imread("Test_image_withPath_overlay.jpeg");
+overlayImage = imread('TestRawImage.jpeg');
 subplot(2,1,1), imshow(overlayImage); 
 subplot(2,1,2), xlabel('image width'), ylabel('image height')
 x_intercept = findBottonIntercept(coefficients);
