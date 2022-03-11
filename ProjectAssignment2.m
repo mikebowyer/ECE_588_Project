@@ -15,7 +15,8 @@ image_sub = rossubscriber(TurtleBot_Topic.picam);
 
 %% Run Main Robot Control Loop
 close all
-figure('units','normalized','outerposition',[0 0 1 1]), hold on
+%figure('units','normalized','outerposition',[0 0 1 1]), hold on
+figure
 while true 
     % Get, rotate, and crop image
     image = grabAndCleanUpImage(image_sub);
@@ -27,16 +28,20 @@ while true
 
     % Getting Line of Best Fit from Hough Lines
     if length(lines) == 0
+        twist_msg.Linear.X = .0;
+        twist_msg.Linear.Z = .0;
+        send(cmd_vel_pub,twist_msg);
         continue
     end
     lineBestFitPoints = BestFitLineAvg(lines);
 
     % Converting line of best fit to intercept and slope
     [theta, intercept, extent_points] = calcBestFitLineInfo(lineBestFitPoints, img_height);
-    PlotInterceptTheta(extent_points, intercept,theta, image)
+    
     
     % Control the boto
     twist_msg = calcCmdVelMsg(intercept, theta, twist_msg, img_width);
+    PlotInterceptTheta(extent_points, intercept,theta, image, twist_msg.Angular.Z)
     send(cmd_vel_pub,twist_msg);
 end
      
@@ -64,12 +69,12 @@ function [theta, intercept, points] = calcBestFitLineInfo(lineBestFitPoints, img
     points = [x1 y1; x2 y2];
 
 end
-function PlotInterceptTheta(lineBestFitPoints, intercept,theta, image)
+function PlotInterceptTheta(lineBestFitPoints, intercept,theta, image, z)
     subplot(224);
     imshow(image);
     hold on; 
     plot(lineBestFitPoints(:,1),lineBestFitPoints(:,2),'LineWidth',2,'Color','red');
-    title("Intercept Pixel: " + ceil(intercept) + "   Theta: " + theta)
+    title("Intercept Pixel: " + ceil(intercept) + "   Theta: " + theta + " Z: " + z)
 end
 
 function image = grabAndCleanUpImage(image_sub)
@@ -172,13 +177,22 @@ end
 function twist_out = calcCmdVelMsg(intercept_pixel, theta, twist_in, img_width)
     twist_out = twist_in;
     
+
     ratio_intercept_from_img_center = (intercept_pixel - (img_width/2)) / (img_width/2);
     
-    max_turn_z_val = .5;
+    twist_out.Linear.X = .05;
     
-    twist_out.Linear.X = .5;
-    twist_out.Angular.Z = max_turn_z_val * (-theta/90) * (-(1 - ratio_intercept_from_img_center)*1.5);
-    twist_out.Angular.Z
+    max_turn_z_val = .1;
+    intercept_part = -.5*((max_turn_z_val) * ratio_intercept_from_img_center)
+    theta_part = -.5*max_turn_z_val * (-theta/90)
+    twist_out.Angular.Z = theta_part + intercept_part;
+
+    if abs(twist_out.Angular.Z) > 1
+        twist_out.Angular.Z = 1 * sign(twist_out.Angular.Z)
+    end
+    
+    %twist_out.Angular.Z = max_turn_z_val * (-theta/90) * (-(1 - ratio_intercept_from_img_center)*1.5);
+ 
 end
 
 % returns angle in degrees of robot path line 
