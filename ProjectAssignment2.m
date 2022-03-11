@@ -29,7 +29,7 @@ while true
     % Getting Line of Best Fit from Hough Lines
     if length(lines) == 0
         twist_msg.Linear.X = .0;
-        twist_msg.Linear.Z = .0;
+        twist_msg.Linear.Z = .2;
         send(cmd_vel_pub,twist_msg);
         continue
     end
@@ -180,9 +180,9 @@ function twist_out = calcCmdVelMsg(intercept_pixel, theta, twist_in, img_width)
 
     ratio_intercept_from_img_center = (intercept_pixel - (img_width/2)) / (img_width/2);
     
-    twist_out.Linear.X = .05;
+    twist_out.Linear.X = .1;
     
-    max_turn_z_val = .1;
+    max_turn_z_val = .2;
     intercept_part = -.5*((max_turn_z_val) * ratio_intercept_from_img_center)
     theta_part = -.5*max_turn_z_val * (-theta/90)
     twist_out.Angular.Z = theta_part + intercept_part;
