@@ -1,5 +1,5 @@
-ip_TurtleBot = '127.0.0.1';    
-ip_Matlab = '127.0.0.1 ';      
+ip_TurtleBot = '192.168.56.4';    
+ip_Matlab = '10.0.1.6';      
 
 setenv('ROS_MASTER_URI', strcat('http://', ip_TurtleBot,':11311'))
 setenv('ROS_IP', ip_Matlab)
