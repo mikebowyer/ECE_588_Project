@@ -30,9 +30,10 @@ while true
     greenPoints = GetGreenPoints(image);
     boundaries = findBoundaries(greenPoints, image);
     boundaryBWImage = ConvertBoundariesToBW(image, boundaries);
-    verticalalLines = VerticalHoughWithBoundaryLines(boundaryBWImage);
-    horizontalLines = HorizontalHoughWithBoundaryLines(boundaryBWImage);
-    lines = [verticalalLines, horizontalLines];
+    lines = VerticalHoughWithBoundaryLines(boundaryBWImage);
+    %verticalalLines = VerticalHoughWithBoundaryLines(boundaryBWImage);
+    %horizontalLines = HorizontalHoughWithBoundaryLines(boundaryBWImage);
+    %lines = [verticalalLines, horizontalLines];
 
     % Hough Transform to Get Lines
     %lines = IsolateGroundLines(image);
@@ -42,8 +43,10 @@ while true
     % Getting Line of Best Fit from Hough Lines
     if length(lines) == 0
         twist_msg.Linear.X = .0;
-        twist_msg.Linear.Z = -.2;
-        send(cmd_vel_pub,twist_msg);
+        for k = 1:10
+            twist_msg.Linear.Z = -.2;
+            send(cmd_vel_pub,twist_msg);
+        end        
         continue
     end
     lineBestFitPoints = BestFitLineAvg(lines);
@@ -218,15 +221,15 @@ function twist_out = calcCmdVelMsg(intercept_pixel, theta, twist_in, img_width)
 
     ratio_intercept_from_img_center = (intercept_pixel - (img_width/2)) / (img_width/2);
     
-    twist_out.Linear.X = .05;
+    twist_out.Linear.X = .01;
     
     max_turn_z_val = .1;
     intercept_part = -.5*((max_turn_z_val) * ratio_intercept_from_img_center)
     theta_part = -.5*max_turn_z_val * (-theta/90)
     twist_out.Angular.Z = theta_part + intercept_part;
 
-    if abs(twist_out.Angular.Z) > 1
-        twist_out.Angular.Z = 1 * sign(twist_out.Angular.Z)
+    if abs(twist_out.Angular.Z) > 0.2
+        twist_out.Angular.Z = 0.2 * sign(twist_out.Angular.Z)
     end
     
     %twist_out.Angular.Z = max_turn_z_val * (-theta/90) * (-(1 - ratio_intercept_from_img_center)*1.5);
@@ -293,7 +296,7 @@ function BWBoundaryImage = ConvertBoundariesToBW(image, boundaries)
             BWBoundaryImage(boundaries{1,k}(j,1),boundaries{1,k}(j,2), 1)=1;
         end        
     end  
-    subplot(224); imshow(BWBoundaryImage); title('BWBoundaryImage')
+    %subplot(224); imshow(BWBoundaryImage); title('BWBoundaryImage')
 end
 
 function boundaries = findBoundaries(BW, rawImage)
@@ -323,12 +326,12 @@ end
 
 function lines = VerticalHoughWithBoundaryLines(boundaries)
     [H, T, R] = hough(boundaries, 'Theta', -60:0.5:60);
-    P = houghpeaks(H, 10, 'Theta', -60:0.5:60);
+    P = houghpeaks(H, 4, 'Theta', -60:0.5:60);
     lines = houghlines(boundaries,T,R,P,'FillGap', 50, 'MinLength', 30);  
 end
 
 function lines = HorizontalHoughWithBoundaryLines(boundaries)
     [H, T, R] = hough(boundaries, 'Theta', -90:0.5:89);
-    P = houghpeaks(H, 10, 'Theta', -90:0.5:89);
+    P = houghpeaks(H, 4, 'Theta', -90:0.5:89);
     lines = houghlines(boundaries,T,R,P,'FillGap', 50, 'MinLength', 30);  
 end
