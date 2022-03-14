@@ -1,5 +1,8 @@
-ip_TurtleBot = '127.0.0.1';    
-ip_Matlab = '127.0.0.1 ';      
+%ip_TurtleBot = '127.0.0.1';    
+%ip_Matlab = '127.0.0.1 ';  
+
+ip_TurtleBot = '10.0.1.57';    
+ip_Matlab = '10.0.1.54'; 
 
 setenv('ROS_MASTER_URI', strcat('http://', ip_TurtleBot,':11311'))
 setenv('ROS_IP', ip_Matlab)
@@ -7,8 +10,8 @@ setenv('ROS_IP', ip_Matlab)
 rosinit(ip_TurtleBot)
 %% Setup Topic Subscriptions and Publications
 % Subscriptions
-TurtleBot_Topic.picam = "/camera/rgb/image_raw/compressed";
-%TurtleBot_Topic.picam = "/raspicam_node/image/compressed";
+%TurtleBot_Topic.picam = "/camera/rgb/image_raw/compressed";
+TurtleBot_Topic.picam = "/raspicam_node/image/compressed";
 image_sub = rossubscriber(TurtleBot_Topic.picam);
 % Publications
 [cmd_vel_pub,twist_msg] = rospublisher('/cmd_vel','geometry_msgs/Twist');
@@ -20,16 +23,26 @@ figure
 while true 
     % Get, rotate, and crop image
     image = grabAndCleanUpImage(image_sub);
+    %image = grabAndCleanUpImageGreen(image_sub);
     [img_height, img_width]= imageSizeFinder(image);
+    
+    %get only green line and get its boundary
+    greenPoints = GetGreenPoints(image);
+    boundaries = findBoundaries(greenPoints, image);
+    boundaryBWImage = ConvertBoundariesToBW(image, boundaries);
+    verticalalLines = VerticalHoughWithBoundaryLines(boundaryBWImage);
+    horizontalLines = HorizontalHoughWithBoundaryLines(boundaryBWImage);
+    lines = [verticalalLines, horizontalLines];
 
     % Hough Transform to Get Lines
-    lines = IsolateGroundLines(image);
+    %lines = IsolateGroundLines(image);
+    %lines = IsolateGroundLinesGreen(image);
     PlotGroundLines(image, lines);
 
     % Getting Line of Best Fit from Hough Lines
     if length(lines) == 0
         twist_msg.Linear.X = .0;
-        twist_msg.Linear.Z = .2;
+        twist_msg.Linear.Z = -.2;
         send(cmd_vel_pub,twist_msg);
         continue
     end
@@ -80,18 +93,43 @@ end
 function image = grabAndCleanUpImage(image_sub)
     image_compressed = receive(image_sub);
     image_compressed.Format = 'bgr8; jpeg compressed bgr8';
-    rotatedImage = imrotate(readImage(image_compressed), 0);
+    rotatedImage = imrotate(readImage(image_compressed), 180);
+    %eliminate the upper half of the image
+    image = imcrop(rotatedImage, [0, 360, 640, 480]);
+end
+
+function binaryImage = grabAndCleanUpImageGreen(image_sub)
+    image_compressed = receive(image_sub);
+    image_compressed.Format = 'bgr8; jpeg compressed bgr8';
+    rotatedImage = imrotate(readImage(image_compressed), 180);
     %eliminate the upper half of the image
     image = imcrop(rotatedImage, [0, 240, 640, 480]);
+    %isolate only green portion
+    greenImage = image(:,:,2);
+    thresholdUpper = 200/255;
+    thresholdLower = 40/255;
+    binaryImage = imbinarize(greenImage, thresholdLower);
+    %binaryImage = uint8(round(190*imbinarize(greenImage, thresholdUpper).*(1-imbinarize(greenImage, thresholdLower))+10));
 end
+
+
+
 function lines = IsolateGroundLines(image)
     cannyImage = edge(rgb2gray(image), 'canny');
     subplot(221); imshow(image)
     subplot(222); imshow(cannyImage)
     [H, T, R] = hough(cannyImage, 'Theta', -60:0.5:60);
     P = houghpeaks(H, 4, 'Theta', -60:0.5:60);
-    lines = houghlines(cannyImage,T,R,P,'FillGap', 50, 'MinLength', 80);
-    
+    lines = houghlines(cannyImage,T,R,P,'FillGap', 50, 'MinLength', 80);    
+end
+
+function lines = IsolateGroundLinesGreen(image)
+    cannyImage = edge(image, 'canny');
+    subplot(221); imshow(image)
+    subplot(222); imshow(cannyImage)
+    [H, T, R] = hough(cannyImage, 'Theta', -60:0.5:60);
+    P = houghpeaks(H, 4, 'Theta', -60:0.5:60);
+    lines = houghlines(cannyImage,T,R,P,'FillGap', 50, 'MinLength', 80);    
 end
 
 function PlotGroundLines(image, lines)
@@ -180,9 +218,9 @@ function twist_out = calcCmdVelMsg(intercept_pixel, theta, twist_in, img_width)
 
     ratio_intercept_from_img_center = (intercept_pixel - (img_width/2)) / (img_width/2);
     
-    twist_out.Linear.X = .1;
+    twist_out.Linear.X = .05;
     
-    max_turn_z_val = .2;
+    max_turn_z_val = .1;
     intercept_part = -.5*((max_turn_z_val) * ratio_intercept_from_img_center)
     theta_part = -.5*max_turn_z_val * (-theta/90)
     twist_out.Angular.Z = theta_part + intercept_part;
@@ -231,4 +269,66 @@ function [height, width] = imageSizeFinder(image)
     imageSize = size(image);
     height = imageSize(1); % number of pixels vertically of cropped image
     width = imageSize(2); % number of pixels horizontally of cropped image
+end
+
+function greenPoints = GetGreenPoints(originalImage)
+    redLowerBound =40;% 
+    redUpperBound =120;%
+    greenLowerBound =70;% 
+    greenUpperBound =100;%
+    blueLowerBound =15;% 
+    blueUpperBound =45;% 
+    greenPoints = redUpperBound>=originalImage(:,:,1) & originalImage(:,:,1)>=redLowerBound & originalImage(:,:,2)<=greenUpperBound & originalImage(:,:,2)>=greenLowerBound & originalImage(:,:,3)<=blueUpperBound & originalImage(:,:,3)>=blueLowerBound;
+    subplot(222); imshow(greenPoints)
+end
+
+function BWBoundaryImage = ConvertBoundariesToBW(image, boundaries)
+    %create empty image
+    [rows, columns, numberOfColorChannels] = size(image);
+    BWBoundaryImage = zeros(rows, columns, 1);
+    for k=1:length(boundaries)
+        %boundaryRows = boundaries{1,k}(:,1);
+        %boundaryColumns = boundaries{1,k}(:,2);
+        for j=1:length(boundaries{1,k})
+            BWBoundaryImage(boundaries{1,k}(j,1),boundaries{1,k}(j,2), 1)=1;
+        end        
+    end  
+    subplot(224); imshow(BWBoundaryImage); title('BWBoundaryImage')
+end
+
+function boundaries = findBoundaries(BW, rawImage)
+    [B,L,N,A] = bwboundaries(BW);
+    boundaries = {};
+    %subplot(224); imshow(rawImage); hold on; 
+    subplot(221); imshow(rawImage); hold on; 
+    % Loop through object boundaries  
+    for k = 1:N 
+        % Boundary k is the parent of a hole if the k-th column 
+        % of the adjacency matrix A contains a non-zero element 
+        if (nnz(A(:,k)) > 0) 
+            boundary = B{k};
+            %boundaries is array of arrays containing boundary points
+            boundaries = [boundaries, boundary];
+             plot(boundary(:,2),... 
+                boundary(:,1),'r','LineWidth',1); 
+%             % Loop through the children of boundary k 
+%             for l = find(A(:,k))' 
+%                 boundary = B{l}; 
+%                 plot(boundary(:,2),... 
+%                     boundary(:,1),'g','LineWidth',2); 
+%             end 
+        end 
+    end
+end 
+
+function lines = VerticalHoughWithBoundaryLines(boundaries)
+    [H, T, R] = hough(boundaries, 'Theta', -60:0.5:60);
+    P = houghpeaks(H, 10, 'Theta', -60:0.5:60);
+    lines = houghlines(boundaries,T,R,P,'FillGap', 50, 'MinLength', 30);  
+end
+
+function lines = HorizontalHoughWithBoundaryLines(boundaries)
+    [H, T, R] = hough(boundaries, 'Theta', -90:0.5:89);
+    P = houghpeaks(H, 10, 'Theta', -90:0.5:89);
+    lines = houghlines(boundaries,T,R,P,'FillGap', 50, 'MinLength', 30);  
 end
