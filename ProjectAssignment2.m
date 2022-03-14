@@ -1,5 +1,5 @@
-ip_TurtleBot = '127.0.0.1';    
-ip_Matlab = '127.0.0.1 ';      
+ip_TurtleBot = '192.168.56.4';    
+ip_Matlab = '10.0.1.6';      
 
 setenv('ROS_MASTER_URI', strcat('http://', ip_TurtleBot,':11311'))
 setenv('ROS_IP', ip_Matlab)
@@ -45,7 +45,9 @@ while true
     send(cmd_vel_pub,twist_msg);
 end
      
-%%
+%% Function Definitions Below
+
+% This function determines line of best fit
 function [theta, intercept, points] = calcBestFitLineInfo(lineBestFitPoints, img_height)
     rise  = lineBestFitPoints(1,2) - lineBestFitPoints(2,2);
     run = lineBestFitPoints(1,1) - lineBestFitPoints(2,1);
@@ -69,6 +71,8 @@ function [theta, intercept, points] = calcBestFitLineInfo(lineBestFitPoints, img
     points = [x1 y1; x2 y2];
 
 end
+
+% This function plots the Intercept
 function PlotInterceptTheta(lineBestFitPoints, intercept,theta, image, z)
     subplot(224);
     imshow(image);
@@ -77,6 +81,7 @@ function PlotInterceptTheta(lineBestFitPoints, intercept,theta, image, z)
     title("Intercept Pixel: " + ceil(intercept) + "   Theta: " + theta + " Z: " + z)
 end
 
+% This function acquires and crops image
 function image = grabAndCleanUpImage(image_sub)
     image_compressed = receive(image_sub);
     image_compressed.Format = 'bgr8; jpeg compressed bgr8';
@@ -84,6 +89,8 @@ function image = grabAndCleanUpImage(image_sub)
     %eliminate the upper half of the image
     image = imcrop(rotatedImage, [0, 240, 640, 480]);
 end
+
+%
 function lines = IsolateGroundLines(image)
     cannyImage = edge(rgb2gray(image), 'canny');
     subplot(221); imshow(image)
@@ -173,7 +180,7 @@ function points = BestFitLineAvg(lines)
     end
 end
 
-
+% this function turns angle and intercept into robot motion output
 function twist_out = calcCmdVelMsg(intercept_pixel, theta, twist_in, img_width)
     twist_out = twist_in;
     
@@ -217,7 +224,7 @@ function theta = convertLineOfBestFit(coefficients)
 
 end
 
-% returns offset via x-intercept with hottom horizontal edge of image
+% returns offset via x-intercept with bottom horizontal edge of image
 function pixels_from_img_center = findInterceptFromImgCenter(coefficients, img_height, img_width)
     y = img_height;
     x_intercept = (y - coefficients(2)) / coefficients(1);
@@ -232,3 +239,4 @@ function [height, width] = imageSizeFinder(image)
     height = imageSize(1); % number of pixels vertically of cropped image
     width = imageSize(2); % number of pixels horizontally of cropped image
 end
+
