@@ -1,6 +1,7 @@
 %ip_TurtleBot = '127.0.0.1';    
 %ip_Matlab = '127.0.0.1 ';  
-
+clear all;
+rosshutdown;
 ip_TurtleBot = '10.0.1.57';    
 ip_Matlab = '10.0.1.54'; 
 
@@ -20,6 +21,7 @@ image_sub = rossubscriber(TurtleBot_Topic.picam);
 close all
 %figure('units','normalized','outerposition',[0 0 1 1]), hold on
 figure
+lastDirection = 'unknown';
 while true 
     % Get, rotate, and crop image
     image = grabAndCleanUpImage(image_sub);
@@ -28,9 +30,12 @@ while true
     
     %get only green line and get its boundary
     greenPoints = GetGreenPoints(image);
+    sufficientPixels = CheckIfSufficientPixels(greenPoints, img_height*img_width, 0.05);
     boundaries = findBoundaries(greenPoints, image);
     boundaryBWImage = ConvertBoundariesToBW(image, boundaries);
-    lines = VerticalHoughWithBoundaryLines(boundaryBWImage);
+    verticalLines = VerticalHoughWithBoundaryLines(boundaryBWImage);
+    horizontalLines = HorizontalHoughWithBoundaryLines(boundaryBWImage);
+    lines = [verticalLines, horizontalLines];
     %verticalalLines = VerticalHoughWithBoundaryLines(boundaryBWImage);
     %horizontalLines = HorizontalHoughWithBoundaryLines(boundaryBWImage);
     %lines = [verticalalLines, horizontalLines];
@@ -39,17 +44,19 @@ while true
     %lines = IsolateGroundLines(image);
     %lines = IsolateGroundLinesGreen(image);
     PlotGroundLines(image, lines);
-
+    direction = GetDirectionFromHorizontalLines(img_width, horizontalLines, lastDirection);
     % Getting Line of Best Fit from Hough Lines
-    if length(lines) == 0
-        twist_msg.Linear.X = .0;
-        for k = 1:10
-            twist_msg.Linear.Z = -.2;
-            send(cmd_vel_pub,twist_msg);
-        end        
-        continue
+    if (length(verticalLines) == 0) || ~sufficientPixels
+        twist_msg.Linear.X = .01;
+        if strcmp(direction, 'left')
+            twist_msg.Angular.Z = .1;
+        else
+            twist_msg.Angular.Z = -.1;
+        end
+        send(cmd_vel_pub,twist_msg);
+        continue;
     end
-    lineBestFitPoints = BestFitLineAvg(lines);
+    lineBestFitPoints = BestFitLineAvg(verticalLines);
 
     % Converting line of best fit to intercept and slope
     [theta, intercept, extent_points] = calcBestFitLineInfo(lineBestFitPoints, img_height);
@@ -62,6 +69,37 @@ while true
 end
      
 %%
+function sufficientPixels = CheckIfSufficientPixels(greenPoints, numPixel, percent)
+    greenPixelsPercent = sum(sum(greenPoints))/numPixel;
+    sufficientPixels = false;
+    if greenPixelsPercent >= percent;
+        sufficientPixels = true;
+    end
+end
+
+function direction = GetDirectionFromHorizontalLines(imageWidth, horizontalLines, lastDirection)
+    startPoints = [];
+    endPoints = [];
+    if length(horizontalLines) ~= 0
+        for k = 1:length(horizontalLines)
+            startPoints = [startPoints ; horizontalLines(k).point1];
+            endPoints = [endPoints ; horizontalLines(k).point2];
+        end
+
+        startPointX = mean(startPoints(:,1));
+        endPointX = mean(endPoints(:,1));
+        averageX = (startPointX + endPointX)/2;
+        
+        if averageX >= imageWidth/2
+            direction = 'right';
+        else
+            direction = 'left';
+        end
+    else
+        direction = lastDirection;
+    end
+end
+
 function [theta, intercept, points] = calcBestFitLineInfo(lineBestFitPoints, img_height)
     rise  = lineBestFitPoints(1,2) - lineBestFitPoints(2,2);
     run = lineBestFitPoints(1,1) - lineBestFitPoints(2,1);
@@ -196,7 +234,7 @@ end
 function points = BestFitLineAvg(lines)
     startPoints = [];
     endPoints = [];
-    
+    points = [];
     if length(lines) ~= 0
         for k = 1:length(lines)
             startPoints = [startPoints ; lines(k).point1];
@@ -224,8 +262,8 @@ function twist_out = calcCmdVelMsg(intercept_pixel, theta, twist_in, img_width)
     twist_out.Linear.X = .01;
     
     max_turn_z_val = .1;
-    intercept_part = -.5*((max_turn_z_val) * ratio_intercept_from_img_center)
-    theta_part = -.5*max_turn_z_val * (-theta/90)
+    intercept_part = -.5*((max_turn_z_val) * ratio_intercept_from_img_center);
+    theta_part = -.5*max_turn_z_val * (-theta/90);
     twist_out.Angular.Z = theta_part + intercept_part;
 
     if abs(twist_out.Angular.Z) > 0.2
@@ -327,11 +365,11 @@ end
 function lines = VerticalHoughWithBoundaryLines(boundaries)
     [H, T, R] = hough(boundaries, 'Theta', -60:0.5:60);
     P = houghpeaks(H, 4, 'Theta', -60:0.5:60);
-    lines = houghlines(boundaries,T,R,P,'FillGap', 50, 'MinLength', 30);  
+    lines = houghlines(boundaries,T,R,P,'FillGap', 50, 'MinLength', 50);  
 end
 
 function lines = HorizontalHoughWithBoundaryLines(boundaries)
-    [H, T, R] = hough(boundaries, 'Theta', -90:0.5:89);
-    P = houghpeaks(H, 4, 'Theta', -90:0.5:89);
-    lines = houghlines(boundaries,T,R,P,'FillGap', 50, 'MinLength', 30);  
+    [H, T, R] = hough(boundaries, 'Theta',[-90:0.5:-80 80:0.5:89]);
+    P = houghpeaks(H, 4, 'Theta', [-90:0.5:-80 80:0.5:89]);
+    lines = houghlines(boundaries,T,R,P,'FillGap', 50, 'MinLength', 50);  
 end
