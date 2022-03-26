@@ -1,6 +1,7 @@
+clear all;
 ip_TurtleBot = '127.0.0.1';    
 ip_Matlab = '127.0.0.1 ';  
-clear all;
+
 rosshutdown;
 %ip_TurtleBot = '10.0.1.57';    
 %ip_Matlab = '10.0.1.54'; 
@@ -35,30 +36,26 @@ while true
     % Read and show lidar data
     scan_data = receive(laser_sub);
     data = readCartesian(scan_data);
+    
+    % Plot robot buffer and scan data
     plot_rect(robot_width,look_ahead_dist, buffer_dist); hold on;
     scatter(data(:,1), data(:,2));
-    xlim([-1 4]); ylim([-2,2]); grid on;
+    xlim([-1 4]); ylim([-2,2]); grid on; set(gca,'XAxisLocation','bottom','YAxisLocation','left','ydir','reverse') 
+
+    % Detect if there are any points in the way of the robot
     if is_there_object_in_way(data, robot_width, look_ahead_dist, buffer_dist)
         title("OBJECT IN THE WAY!!!!!!!!!!")
+        twist_msg = calcCmdVelMsg('right', twist_msg);
+        % turn right
     else
         title("nah")
+        % turn go straight
+        twist_msg = calcCmdVelMsg('straight', twist_msg);
+
     end
     pause(1);
     clf
-
-    
-
-    
-
-
-
-    % 
-    
-    
-    % Control the boto
-    %twist_msg = calcCmdVelMsg(intercept, theta, twist_msg, img_width);
-    %PlotInterceptTheta(extent_points, intercept,theta, image, twist_msg.Angular.Z)
-    %send(cmd_vel_pub,twist_msg);
+    send(cmd_vel_pub,twist_msg);
 end
      
 %% FUNCTIONS
@@ -89,25 +86,17 @@ function object_in_way = is_there_object_in_way(xy_scan, robot_width, look_ahead
 
 end
 
+function twist_out = calcCmdVelMsg(direction, twist_in)
 
-
-function twist_out = calcCmdVelMsg(intercept_pixel, theta, twist_in, img_width)
     twist_out = twist_in;
-    
-
-    ratio_intercept_from_img_center = (intercept_pixel - (img_width/2)) / (img_width/2);
-    
-    twist_out.Linear.X = .01;
-    
-    max_turn_z_val = .1;
-    intercept_part = -.5*((max_turn_z_val) * ratio_intercept_from_img_center);
-    theta_part = -.5*max_turn_z_val * (-theta/90);
-    twist_out.Angular.Z = theta_part + intercept_part;
-
-    if abs(twist_out.Angular.Z) > 0.2
-        twist_out.Angular.Z = 0.2 * sign(twist_out.Angular.Z)
+    if strcmp(direction, 'left')
+        twist_out.Angular.Z = .1;
+        twist_out.Linear.X = 0;
+    elseif strcmp(direction, 'right')
+        twist_out.Angular.Z = -.1;
+        twist_out.Linear.X = 0;
+    else
+        twist_out.Angular.Z = 0;
+        twist_out.Linear.X = 0.1;
     end
-    
-    %twist_out.Angular.Z = max_turn_z_val * (-theta/90) * (-(1 - ratio_intercept_from_img_center)*1.5);
- 
 end
