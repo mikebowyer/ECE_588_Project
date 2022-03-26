@@ -1,10 +1,10 @@
 clear all;
-ip_TurtleBot = '127.0.0.1';    
-ip_Matlab = '127.0.0.1 ';  
+%ip_TurtleBot = '127.0.0.1';    
+%ip_Matlab = '127.0.0.1 ';  
 
 rosshutdown;
-%ip_TurtleBot = '10.0.1.57';    
-%ip_Matlab = '10.0.1.54'; 
+ip_TurtleBot = '10.0.1.57';    
+ip_Matlab = '10.0.1.54'; 
 
 setenv('ROS_MASTER_URI', strcat('http://', ip_TurtleBot,':11311'))
 setenv('ROS_IP', ip_Matlab)
@@ -19,6 +19,9 @@ rosinit(ip_TurtleBot)
 %% Lidar
 TurtleBot_Topic.laser = '/scan';
 laser_sub = rossubscriber('/scan'); 
+%% 
+TurtleBot_Topic.odom = '/odom';
+odom_sub = rossubscriber('/odom');
 %% Publications
 [cmd_vel_pub,twist_msg] = rospublisher('/cmd_vel','geometry_msgs/Twist');
 
@@ -26,22 +29,30 @@ laser_sub = rossubscriber('/scan');
 close all
 %figure('units','normalized','outerposition',[0 0 1 1]), hold on
 figure
-%robot_width = 178 * 10^-3; % meters Burger
-robot_width = 306 * 10^-3; % meters Waffle
-look_ahead_dist = .5; 
-buffer_dist = 100 * 10^-3;
-
+robot_width = 178 * 10^-3; % meters Burger
+%robot_width = 306 * 10^-3; % meters Waffle
+look_ahead_dist = .3; 
+buffer_dist = 120 * 10^-3;
+odom_data = receive(odom_sub);
+initial_x_position = odom_data.Pose.Pose.Position.X;
+initial_y_position = odom_data.Pose.Pose.Position.Y;
+relative_x = [];
+relative_y = [];
 while true 
-    
+    odom_data = receive(odom_sub);
+    relative_x = [relative_x, initial_x_position - odom_data.Pose.Pose.Position.X];
+    relative_y = [relative_y, initial_y_position - odom_data.Pose.Pose.Position.Y];
+    odom_data.Pose.Pose.Position.Y
     % Read and show lidar data
     scan_data = receive(laser_sub);
     data = readCartesian(scan_data);
     
     % Plot robot buffer and scan data
-    plot_rect(robot_width,look_ahead_dist, buffer_dist); hold on;
-    scatter(data(:,1), data(:,2));
-    xlim([-1 4]); ylim([-2,2]); grid on; set(gca,'XAxisLocation','bottom','YAxisLocation','left','ydir','reverse') 
-
+    plot_rect(robot_width,look_ahead_dist, buffer_dist); %hold on
+    scatter(data(:,1), data(:,2))
+    xlim([-1 4]); ylim([-2,2]); grid on; set(gca,'XAxisLocation','bottom','YAxisLocation','left','ydir','reverse')
+    scatter(relative_x,relative_y,[],'green','filled')
+    hold off
     % Detect if there are any points in the way of the robot
     if is_there_object_in_way(data, robot_width, look_ahead_dist, buffer_dist)
         title("OBJECT IN THE WAY!!!!!!!!!!")
@@ -53,8 +64,8 @@ while true
         twist_msg = calcCmdVelMsg('straight', twist_msg);
 
     end
-    pause(1);
-    clf
+%     pause(1);
+%     clf
     send(cmd_vel_pub,twist_msg);
 end
      
@@ -68,6 +79,7 @@ function plot_rect(robot_width, look_ahead_dist, buffer_dist)
     x = [x1, x2, x2, x1, x1];
     y = [y1, y1, y2, y2, y1];
     plot(x, y, 'b-', 'LineWidth', 3);
+    hold on
 end
 
 function object_in_way = is_there_object_in_way(xy_scan, robot_width, look_ahead_dist, buffer_dist)
@@ -97,6 +109,6 @@ function twist_out = calcCmdVelMsg(direction, twist_in)
         twist_out.Linear.X = 0;
     else
         twist_out.Angular.Z = 0;
-        twist_out.Linear.X = 0.1;
+        twist_out.Linear.X = 0.025;
     end
 end
