@@ -25,14 +25,26 @@ laser_sub = rossubscriber('/scan');
 close all
 %figure('units','normalized','outerposition',[0 0 1 1]), hold on
 figure
-lastDirection = 'unknown';
+%robot_width = 178 * 10^-3; % meters Burger
+robot_width = 306 * 10^-3; % meters Waffle
+look_ahead_dist = .5; 
+
 while true 
     
     % Read and show lidar data
     scan_data = receive(laser_sub);
-    plot(scan_data);
+    data = readCartesian(scan_data);
+    plot_rect(robot_width,look_ahead_dist); hold on;
+    scatter(data(:,1), data(:,2));
+    xlim([-5 5]); ylim([-5,5]); grid on;
+    pause(1);
+    clf
 
-    %data = readCartesian(scan_data); 
+    
+
+
+
+    % 
     
     
     % Control the boto
@@ -43,6 +55,15 @@ end
      
 %% FUNCTIONS
 
+function plot_rect(robot_width, look_ahead_dist)
+    y1=-robot_width/2;
+    y2=robot_width/2;
+    x1=0;
+    x2=look_ahead_dist;
+    x = [x1, x2, x2, x1, x1];
+    y = [y1, y1, y2, y2, y1];
+    plot(x, y, 'b-', 'LineWidth', 3);
+end
 function twist_out = calcCmdVelMsg(intercept_pixel, theta, twist_in, img_width)
     twist_out = twist_in;
     
