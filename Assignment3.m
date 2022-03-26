@@ -37,7 +37,7 @@ while true
     data = readCartesian(scan_data);
     plot_rect(robot_width,look_ahead_dist, buffer_dist); hold on;
     scatter(data(:,1), data(:,2));
-    xlim([-5 5]); ylim([-5,5]); grid on;
+    xlim([-1 4]); ylim([-2,2]); grid on;
     if is_there_object_in_way(data, robot_width, look_ahead_dist, buffer_dist)
         title("OBJECT IN THE WAY!!!!!!!!!!")
     else
@@ -74,12 +74,15 @@ function plot_rect(robot_width, look_ahead_dist, buffer_dist)
 end
 
 function object_in_way = is_there_object_in_way(xy_scan, robot_width, look_ahead_dist, buffer_dist)
-    object_in_way= false    
+    %[num_points, width]= size(xy_scan);
+    %num_points_per_quad = ceil(num_points / 4);
+    object_in_way= false;
     for j=1:length(xy_scan)
-        point = xy_scan(j, :)
+        point = xy_scan(j, :);
         if abs((robot_width + buffer_dist)/2) > abs(point(2))
-            if look_ahead_dist > abs(point(1))
-                object_in_way= true
+            if look_ahead_dist > abs(point(1)) && point(1) > 0
+                object_in_way= true;
+                return
             end 
         end 
     end
