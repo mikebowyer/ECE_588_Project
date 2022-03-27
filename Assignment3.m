@@ -72,15 +72,18 @@ while true
     if ~obj_to_left & ~obj_to_right
         direction = 'straight';
         twist_msg = calcCmdVelMsg('straight', twist_msg, angle_max, speed_max);
+    elseif obj_to_left & obj_to_right
+        direction = calcBestDirToTurn(scan_data);
+        twist_msg = calcCmdVelMsg(direction, twist_msg, angle_max, speed_max);
+        direction = ['not clear - ' direction];
     elseif obj_to_left
         direction = 'right';
         calcCmdVelMsg('right', twist_msg, angle_max, speed_max);
-    elseif obj_to_right
+        direction = 'clear - right';
+    else
         direction = 'left';
         calcCmdVelMsg('left', twist_msg, angle_max, speed_max);
-    else
-        direction = calcBestDirToTurn(scan_data);
-        twist_msg = calcCmdVelMsg(direction, twist_msg, angle_max, speed_max);
+        direction = 'clear - left';
     end
     title(["Direction: " num2str(direction)]);
 
@@ -135,7 +138,7 @@ function [object_in_way_left, object_in_way_right] = is_there_object_in_way(xy_s
         point = xy_scan(j, :);
         if abs((robot_width + buffer_dist)/2) > abs(point(2))
             if (look_ahead_dist + dist_lidar_to_robot_front) > abs(point(1)) && (point(1) > dist_lidar_to_robot_front)
-                if point(1) > 0
+                if point(2) > 0
                     object_in_way_left = true;
                 else
                     object_in_way_right = true;
