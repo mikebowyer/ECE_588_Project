@@ -1,10 +1,10 @@
 clear all;
-ip_TurtleBot = '127.0.0.1';    
-ip_Matlab = '127.0.0.1 ';  
+% ip_TurtleBot = '127.0.0.1';    
+% ip_Matlab = '127.0.0.1 ';  
 
 rosshutdown;
-%ip_TurtleBot = '10.0.1.57';    
-%ip_Matlab = '10.0.1.54'; 
+ip_TurtleBot = '10.0.1.57';    
+ip_Matlab = '10.0.1.54'; 
 
 setenv('ROS_MASTER_URI', strcat('http://', ip_TurtleBot,':11311'))
 setenv('ROS_IP', ip_Matlab)
@@ -32,23 +32,24 @@ figure
 %% BURGER
 robot_width = 178 * 10^-3; % meters Burger
 dist_lidar_to_robot_front = 90 * 10^-3; 
-look_ahead_dist = .3; 
-buffer_dist = 120 * 10^-3;
+look_ahead_dist = .2; 
+buffer_dist = 130 * 10^-3;
 angle_max = .1;
 speed_max = .025;
 %% WAFFLE
-robot_width = 306 * 10^-3; % meters Waffle
-dist_lidar_to_robot_front = 100 * 10^-3; 
-look_ahead_dist = .5; 
-buffer_dist = 120 * 10^-3;
-angle_max = .5;
-speed_max = .2;
+% robot_width = 306 * 10^-3; % meters Waffle
+% dist_lidar_to_robot_front = 100 * 10^-3; 
+% look_ahead_dist = .5; 
+% buffer_dist = 120 * 10^-3;
+% angle_max = .5;
+% speed_max = .2;
 %%
 odom_data = receive(odom_sub);
 initial_x_position = odom_data.Pose.Pose.Position.X;
 initial_y_position = odom_data.Pose.Pose.Position.Y;
 relative_x = [];
 relative_y = [];
+backAndForthCounter = 0;
 while true 
     odom_data = receive(odom_sub);
     relative_x = [relative_x, initial_x_position - odom_data.Pose.Pose.Position.X];
@@ -68,25 +69,39 @@ while true
 
     % Detect if there are any points in the way of the robot
     [obj_to_left, obj_to_right] = is_there_object_in_way(data, robot_width, look_ahead_dist, buffer_dist, dist_lidar_to_robot_front);
-    direction = 'straight';
-    if ~obj_to_left & ~obj_to_right
-        direction = 'straight';
-        twist_msg = calcCmdVelMsg('straight', twist_msg, angle_max, speed_max);
-    elseif obj_to_left & obj_to_right
+    direction = '';
+    directionForTitle = '';
+    previousDirection = direction;
+    if ~obj_to_left && ~obj_to_right
+        direction = 'straight';    
+        backAndForthCounter = 0;
+        directionForTitle = 'straight';
+    elseif obj_to_left && obj_to_right
         direction = calcBestDirToTurn(scan_data);
-        twist_msg = calcCmdVelMsg(direction, twist_msg, angle_max, speed_max);
-        direction = ['not clear - ' direction];
+        directionForTitle = ['not clear - turning ' direction];        
     elseif obj_to_left
         direction = 'right';
-        calcCmdVelMsg('right', twist_msg, angle_max, speed_max);
-        direction = 'clear - right';
+        directionForTitle = 'clear - turning right';
     else
         direction = 'left';
-        calcCmdVelMsg('left', twist_msg, angle_max, speed_max);
-        direction = 'clear - left';
+        directionForTitle = 'clear - turning left';     
     end
-    title(["Direction: " num2str(direction)]);
-
+    if ~strcmp(direction, previousDirection) && ~strcmp(direction, 'straight') && ~strcmp('straight', previousDirection)
+        backAndForthCounter = backAndForthCounter + 1;
+    elseif strcmp(direction, previousDirection)
+        %if does two in a row of the same direction, is making progress
+        backAndForthCounter = 0;
+    end
+    previousDirection = direction;
+    if backAndForthCounter > 10
+        direction = 'right';
+        directionForTitle = 'Avoidance';
+    end
+    title(["Direction: " directionForTitle]);
+    xlabel('Distance in front of robot (meters)');
+    ylabel('Lateral distance relative to robot (meters)');
+    legend('Robot size', 'Look ahead outline', 'lidar points')
+    twist_msg = calcCmdVelMsg(direction, twist_msg, angle_max, speed_max);
     % Send Control Command
     send(cmd_vel_pub,twist_msg);
 end
