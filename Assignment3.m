@@ -54,6 +54,7 @@ while true
     relative_x = [relative_x, initial_x_position - odom_data.Pose.Pose.Position.X];
     relative_y = [relative_y, initial_y_position - odom_data.Pose.Pose.Position.Y];
     odom_data.Pose.Pose.Position.Y;
+    
     % Read and show lidar data
     scan_data = receive(laser_sub);
     data = readCartesian(scan_data);
@@ -62,22 +63,28 @@ while true
     plot_rect(robot_width,look_ahead_dist, buffer_dist, dist_lidar_to_robot_front); %hold on
     scatter(data(:,1), data(:,2))
     xlim([-1 4]); ylim([-2,2]); grid on; %set(gca,'XAxisLocation','bottom','YAxisLocation','left','ydir','reverse')
-    scatter(relative_x,relative_y,[],'green','filled')
+    %scatter(relative_x,relative_y,[],'green','filled')
     hold off
+
     % Detect if there are any points in the way of the robot
-    if is_there_object_in_way(data, robot_width, look_ahead_dist, buffer_dist, dist_lidar_to_robot_front)
+    [obj_to_left, obj_to_right] = is_there_object_in_way(data, robot_width, look_ahead_dist, buffer_dist, dist_lidar_to_robot_front);
+    direction = 'straight';
+    if ~obj_to_left & ~obj_to_right
+        direction = 'straight';
+        twist_msg = calcCmdVelMsg('straight', twist_msg, angle_max, speed_max);
+    elseif obj_to_left
+        direction = 'right';
+        calcCmdVelMsg('right', twist_msg, angle_max, speed_max);
+    elseif obj_to_right
+        direction = 'left';
+        calcCmdVelMsg('left', twist_msg, angle_max, speed_max);
+    else
         direction = calcBestDirToTurn(scan_data);
         twist_msg = calcCmdVelMsg(direction, twist_msg, angle_max, speed_max);
-        title("Turning to the %s", direction)
-        % turn right
-    else
-        title("nah")
-        % turn go straight
-        twist_msg = calcCmdVelMsg('straight', twist_msg, angle_max, speed_max);
-
     end
-%     pause(1);
-%     clf
+    title(["Direction: " num2str(direction)]);
+
+    % Send Control Command
     send(cmd_vel_pub,twist_msg);
 end
      
@@ -120,20 +127,22 @@ function plot_rect(robot_width, look_ahead_dist, buffer_dist, dist_lidar_to_robo
     
 end
 
-function object_in_way = is_there_object_in_way(xy_scan, robot_width, look_ahead_dist, buffer_dist, dist_lidar_to_robot_front)
-    %[num_points, width]= size(xy_scan);
-    %num_points_per_quad = ceil(num_points / 4);
-    object_in_way= false;
+function [object_in_way_left, object_in_way_right] = is_there_object_in_way(xy_scan, robot_width, look_ahead_dist, buffer_dist, dist_lidar_to_robot_front)
+    object_in_way_left = false;
+    object_in_way_right = false;
+    
     for j=1:length(xy_scan)
         point = xy_scan(j, :);
         if abs((robot_width + buffer_dist)/2) > abs(point(2))
             if (look_ahead_dist + dist_lidar_to_robot_front) > abs(point(1)) && (point(1) > dist_lidar_to_robot_front)
-                object_in_way= true;
-                return
+                if point(1) > 0
+                    object_in_way_left = true;
+                else
+                    object_in_way_right = true;
+                end
             end 
         end 
     end
-
 end
 
 function twist_out = calcCmdVelMsg(direction, twist_in, angle_max, speed_max)
