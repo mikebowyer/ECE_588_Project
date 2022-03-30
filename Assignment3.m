@@ -50,6 +50,7 @@ initial_y_position = odom_data.Pose.Pose.Position.Y;
 relative_x = [];
 relative_y = [];
 backAndForthCounter = 0;
+direction = '';
 while true 
     odom_data = receive(odom_sub);
     relative_x = [relative_x, initial_x_position - odom_data.Pose.Pose.Position.X];
@@ -69,12 +70,11 @@ while true
 
     % Detect if there are any points in the way of the robot
     [obj_to_left, obj_to_right] = is_there_object_in_way(data, robot_width, look_ahead_dist, buffer_dist, dist_lidar_to_robot_front);
-    direction = '';
     directionForTitle = '';
     previousDirection = direction;
     if ~obj_to_left && ~obj_to_right
         direction = 'straight';    
-        backAndForthCounter = 0;
+        backAndForthCounter = 0
         directionForTitle = 'straight';
     elseif obj_to_left && obj_to_right
         direction = calcBestDirToTurn(scan_data);
@@ -87,13 +87,15 @@ while true
         directionForTitle = 'clear - turning left';     
     end
     if ~strcmp(direction, previousDirection) && ~strcmp(direction, 'straight') && ~strcmp('straight', previousDirection)
-        backAndForthCounter = backAndForthCounter + 1;
-    elseif strcmp(direction, previousDirection)
-        %if does two in a row of the same direction, is making progress
-        backAndForthCounter = 0;
+        direction
+        previousDirection
+        backAndForthCounter = backAndForthCounter + 1
+%     elseif strcmp(direction, previousDirection)
+%         %if does two in a row of the same direction, is making progress
+%         backAndForthCounter = 0
     end
     previousDirection = direction;
-    if backAndForthCounter > 10
+    if backAndForthCounter > 5
         direction = 'right';
         directionForTitle = 'Avoidance';
     end
