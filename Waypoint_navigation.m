@@ -30,6 +30,9 @@ initial_x_position = initial_odom_data.Pose.Pose.Position.X;
 initial_y_position = initial_odom_data.Pose.Pose.Position.Y;
 relative_x = [];
 relative_y = [];
+
+ang_pid = AngularPIDController()
+tic
  while true
     % Get and plot recent odometry
     odom_data = receive(odom_sub);
@@ -38,60 +41,51 @@ relative_y = [];
     relative_y = [relative_y, initial_y_position - current_pose.Position.Y];
     scatter(relative_x,relative_y,[],'green','filled')
 
-    % Calc desired spee
     [dist_to_targ, ang_to_targ] = CalcDeltaPoseToTarget(current_pose, targ_pose);
-   
+    ang_to_targ
+  
+    curr_time = toc;
+    ang_vel = ang_pid.CalcAngVel(curr_time, ang_to_targ);
+    ang_vel
     
-    
-
-
-    % Preparing shit 
-%    robot_Orientation = [new_odom_data.Pose.Pose.Orientation.W, new_odom_data.Pose.Pose.Orientation.X, new_odom_data.Pose.Pose.Orientation.Y, new_odom_data.Pose.Pose.Orientation.Z]
-    
-
-    
-
-%     robot_Rotation = quat2rotm(robot_Orientation);
-%     eulZYX = rotm2eul(robot_Rotation);
-%     current_pose = [new_odom_data.Pose.Pose.Position.X new_odom_data.Pose.Pose.Position.Y eulZYX(1)];
-%     fprintf("\nCurrent Pose:\n\tX: %f\n\tY: %f\n\tT: %f", new_odom_data.Pose.Pose.Position.X, new_odom_data.Pose.Pose.Position.Y, eulZYX(1));
-%     [linear_vel, angular_vel] = DifferentialDrive_PD_Control(target_pose, current_pose);
-%     % send this velocity command to robot
-%     actuate(cmd_vel_pub, twist_msg, linear_vel,angular_vel);
+    actuate(cmd_vel_pub, twist_msg, 0, ang_vel)
+    % Saving things for next iteration
+    tic;
     
 end     
 %% Calculate Delta between Current Pose and Target Pose
-function [delta_dist, delta_theta = CalcDeltaPoseToTarget(curr_pose, targ_pose)
+function [delta_dist, delta_theta] = CalcDeltaPoseToTarget(curr_pose, targ_pose)
     d_x = curr_pose.Position.X - targ_pose.Position.X;
     d_y = curr_pose.Position.Y - targ_pose.Position.Y;
 
     % Get current robot angle
     cur_angle_quat = quaternion([curr_pose.Orientation.X curr_pose.Orientation.Y curr_pose.Orientation.Z curr_pose.Orientation.W ]);
     cur_angle_mat = quat2rotm(cur_angle_quat);
-    cur_angle = wrapToPi(-atan2(cur_angle_mat(2,3), cur_angle_mat(3,3)) + pi/2);
+    cur_angle = wrapToPi(-atan2(cur_angle_mat(2,3), cur_angle_mat(3,3)) - pi/2);
 
     % Get angle from robot directly to the target
     targ_ang = atan2(-d_y,-d_x);
-    delta_theta = cur_angle - targ_ang
+    delta_theta = cur_angle - targ_ang;
 
-    delta_dist = sqrt(d_x^2 + d_y^2)
+    delta_dist = sqrt(d_x^2 + d_y^2);
 
 end
 
 
-function actuate(cmd_vel_pub, twist_in, linear_vel, angular_vel)
+function actuate(cmd_vel_pub, twist_in, linear_vel, ang_vel)
 
     twist_out = twist_in;
 
     % assign linear velocity
     twist_out.Linear.X = linear_vel(1);
-    twist_out.Linear.Y = linear_vel(2);
-    twist_out.Linear.Z = linear_vel(3);
+    twist_out.Linear.Y = 0;
+    twist_out.Linear.Z = 0;
     % assign angular velocity
-    twist_out.Angular.X = angular_vel(1);
-    twist_out.Angular.Y = angular_vel(2);
-    twist_out.Angular.Z = angular_vel(3);
+    twist_out.Angular.X = 0;
+    twist_out.Angular.Y = 0;
+    twist_out.Angular.Z = ang_vel;
 
     % send this velocity command to robot
     send(cmd_vel_pub,twist_out);
 end
+
