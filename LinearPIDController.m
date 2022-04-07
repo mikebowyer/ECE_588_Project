@@ -4,7 +4,7 @@ classdef LinearPIDController
 
     properties
         % Params
-        Kp = .05;
+        Kp = .08;
         Ki = 10;
         Kd = .0003;
         vel_low_lim = 0;
