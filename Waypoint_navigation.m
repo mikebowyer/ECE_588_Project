@@ -16,19 +16,20 @@ rosinit(ip_TurtleBot)
 TurtleBot_Topic.odom = '/odom';
 odom_sub = rossubscriber('/odom');
 [cmd_vel_pub,twist_msg] = rospublisher('/cmd_vel','geometry_msgs/Twist');
+
+
+%% Target Pose Information
+[targ_pose_pub,targ_pose] = rospublisher("/pose","geometry_msgs/Pose","DataFormat","struct");
+targ_pose.Position.X = 2;
+targ_pose.Position.Y = 2;
+%% Run Main Robot Control Loop
+close all
+figure
 initial_odom_data = receive(odom_sub);
 initial_x_position = initial_odom_data.Pose.Pose.Position.X;
 initial_y_position = initial_odom_data.Pose.Pose.Position.Y;
 relative_x = [];
 relative_y = [];
-
-%% Target Pose Information
-[targ_pose_pub,targ_pose] = rospublisher("/pose","geometry_msgs/Pose","DataFormat","struct");
-targ_pose.Position.X = 10;
-targ_pose.Position.Y = 10;
-%% Run Main Robot Control Loop
-close all
-figure
  while true
     % Get and plot recent odometry
     odom_data = receive(odom_sub);
@@ -65,16 +66,15 @@ function delta_cur_to_targ_pose = CalcDeltaPoseToTarget(curr_pose, targ_pose)
     delta_cur_to_targ_pose.Position.X = curr_pose.Position.X - targ_pose.Position.X;
     delta_cur_to_targ_pose.Position.Y = curr_pose.Position.Y - targ_pose.Position.Y;
 
+    % Get current robot angle
     cur_angle_quat = quaternion([curr_pose.Orientation.X curr_pose.Orientation.Y curr_pose.Orientation.Z curr_pose.Orientation.W ]);
-    cur_angle_mat = quat2rotm(cur_angle_quat)
-    angle_diff = atan2(cur_angle_mat(2,3), cur_angle_mat(3,3))
+    cur_angle_mat = quat2rotm(cur_angle_quat);
+    cur_angle = wrapToPi(-atan2(cur_angle_mat(2,3), cur_angle_mat(3,3)) + pi/2)
 
+    % Get angle from robot directly to the target
+    targ_ang = atan2(-delta_cur_to_targ_pose.Position.Y,-delta_cur_to_targ_pose.Position.X)
+    delta_theta = cur_angle - targ_ang
 
-%     cur_angle_quat = quaternion([curr_pose.Orientation.X curr_pose.Orientation.Y curr_pose.Orientation.Z curr_pose.Orientation.W ]);
-%     cur_angle_vec = quat2rotm(cur_angle_quat);
-%     axang = rotm2axang(cur_angle_vec)
-
-    % TODO Delta Angle
 end
 
 
