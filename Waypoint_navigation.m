@@ -39,7 +39,7 @@ relative_y = [];
     scatter(relative_x,relative_y,[],'green','filled')
 
     % Calc desired spee
-    delta_cur_to_targ_pose = CalcDeltaPoseToTarget(current_pose, targ_pose);
+    [dist_to_targ, ang_to_targ] = CalcDeltaPoseToTarget(current_pose, targ_pose);
    
     
     
@@ -61,19 +61,20 @@ relative_y = [];
     
 end     
 %% Calculate Delta between Current Pose and Target Pose
-function delta_cur_to_targ_pose = CalcDeltaPoseToTarget(curr_pose, targ_pose)
-    delta_cur_to_targ_pose = curr_pose;
-    delta_cur_to_targ_pose.Position.X = curr_pose.Position.X - targ_pose.Position.X;
-    delta_cur_to_targ_pose.Position.Y = curr_pose.Position.Y - targ_pose.Position.Y;
+function [delta_dist, delta_theta = CalcDeltaPoseToTarget(curr_pose, targ_pose)
+    d_x = curr_pose.Position.X - targ_pose.Position.X;
+    d_y = curr_pose.Position.Y - targ_pose.Position.Y;
 
     % Get current robot angle
     cur_angle_quat = quaternion([curr_pose.Orientation.X curr_pose.Orientation.Y curr_pose.Orientation.Z curr_pose.Orientation.W ]);
     cur_angle_mat = quat2rotm(cur_angle_quat);
-    cur_angle = wrapToPi(-atan2(cur_angle_mat(2,3), cur_angle_mat(3,3)) + pi/2)
+    cur_angle = wrapToPi(-atan2(cur_angle_mat(2,3), cur_angle_mat(3,3)) + pi/2);
 
     % Get angle from robot directly to the target
-    targ_ang = atan2(-delta_cur_to_targ_pose.Position.Y,-delta_cur_to_targ_pose.Position.X)
+    targ_ang = atan2(-d_y,-d_x);
     delta_theta = cur_angle - targ_ang
+
+    delta_dist = sqrt(d_x^2 + d_y^2)
 
 end
 
