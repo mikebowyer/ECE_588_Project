@@ -23,17 +23,20 @@ odom_sub = rossubscriber('/odom');
 %% Run Main Robot Control Loop
 close all
 figure
+stop_dist_thresh  = .25;
 initial_odom_data = receive(odom_sub);
 initial_x_position = initial_odom_data.Pose.Pose.Position.X;
 initial_y_position = initial_odom_data.Pose.Pose.Position.Y;
 [targ_pose_pub,targ_pose] = rospublisher("/pose","geometry_msgs/Pose","DataFormat","struct");
-targ_pose.Position.X = 5;
-targ_pose.Position.Y = 3;
+targ_pose.Position.X = -0;
+targ_pose.Position.Y = -2;
 relative_x = [];
 relative_y = [];
+scatter(targ_pose.Position.X,targ_pose.Position.Y,[],'green','x'); hold on;
 
 ang_pid = AngularPIDController();
 lin_pid = LinearPIDController();
+actuate(cmd_vel_pub, twist_msg, 0, 0);
 tic
  while true
     % Get and plot recent odometry
@@ -46,14 +49,18 @@ tic
     [dist_to_targ, ang_to_targ] = CalcDeltaPoseToTarget(current_pose, targ_pose);
     ang_to_targ  ;
     curr_time = toc;
-    ang_vel = ang_pid.CalcAngVel(curr_time, ang_to_targ);
-    lin_vel = lin_pid.CalcLinVel(curr_time, dist_to_targ)
-    lin_vel
+    if dist_to_targ < stop_dist_thresh
+        ang_vel = 0;
+        lin_vel = 0;
+        actuate(cmd_vel_pub, twist_msg, lin_vel, ang_vel)
+        return
+    else
+        ang_vel = ang_pid.CalcAngVel(curr_time, ang_to_targ);
+        lin_vel = lin_pid.CalcLinVel(curr_time, dist_to_targ)
+    end
     
-    actuate(cmd_vel_pub, twist_msg, 0.06, ang_vel)
-    % Saving things for next iteration
+    actuate(cmd_vel_pub, twist_msg, lin_vel, ang_vel)
     tic;
-    
 end     
 %% Calculate Delta between Current Pose and Target Pose
 function [delta_dist, delta_theta] = CalcDeltaPoseToTarget(curr_pose, targ_pose)
@@ -63,11 +70,11 @@ function [delta_dist, delta_theta] = CalcDeltaPoseToTarget(curr_pose, targ_pose)
     % Get current robot angle
     cur_angle_quat = quaternion([curr_pose.Orientation.X curr_pose.Orientation.Y curr_pose.Orientation.Z curr_pose.Orientation.W ]);
     cur_angle_mat = quat2rotm(cur_angle_quat);
-    cur_angle = wrapToPi(atan2(cur_angle_mat(2,3), cur_angle_mat(3,3)))
+    cur_angle = wrapToPi(atan2(cur_angle_mat(2,3), cur_angle_mat(3,3)));
 
     % Get angle from robot directly to the target
-    targ_ang = atan2(d_y,d_x)
-    delta_theta = targ_ang-cur_angle
+    targ_ang = atan2(d_y,d_x);
+    delta_theta = targ_ang-cur_angle;
 
     delta_dist = sqrt(d_x^2 + d_y^2);
 
