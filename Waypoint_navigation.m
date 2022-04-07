@@ -19,19 +19,21 @@ odom_sub = rossubscriber('/odom');
 
 
 %% Target Pose Information
-[targ_pose_pub,targ_pose] = rospublisher("/pose","geometry_msgs/Pose","DataFormat","struct");
-targ_pose.Position.X = 2;
-targ_pose.Position.Y = 2;
+
 %% Run Main Robot Control Loop
 close all
 figure
 initial_odom_data = receive(odom_sub);
 initial_x_position = initial_odom_data.Pose.Pose.Position.X;
 initial_y_position = initial_odom_data.Pose.Pose.Position.Y;
+[targ_pose_pub,targ_pose] = rospublisher("/pose","geometry_msgs/Pose","DataFormat","struct");
+targ_pose.Position.X = 5;
+targ_pose.Position.Y = 3;
 relative_x = [];
 relative_y = [];
 
-ang_pid = AngularPIDController()
+ang_pid = AngularPIDController();
+lin_pid = LinearPIDController();
 tic
  while true
     % Get and plot recent odometry
@@ -42,30 +44,30 @@ tic
     scatter(relative_x,relative_y,[],'green','filled')
 
     [dist_to_targ, ang_to_targ] = CalcDeltaPoseToTarget(current_pose, targ_pose);
-    ang_to_targ
-  
+    ang_to_targ  ;
     curr_time = toc;
     ang_vel = ang_pid.CalcAngVel(curr_time, ang_to_targ);
-    ang_vel
+    lin_vel = lin_pid.CalcLinVel(curr_time, dist_to_targ)
+    lin_vel
     
-    actuate(cmd_vel_pub, twist_msg, 0, ang_vel)
+    actuate(cmd_vel_pub, twist_msg, 0.06, ang_vel)
     % Saving things for next iteration
     tic;
     
 end     
 %% Calculate Delta between Current Pose and Target Pose
 function [delta_dist, delta_theta] = CalcDeltaPoseToTarget(curr_pose, targ_pose)
-    d_x = curr_pose.Position.X - targ_pose.Position.X;
-    d_y = curr_pose.Position.Y - targ_pose.Position.Y;
+    d_x = targ_pose.Position.X - curr_pose.Position.X;
+    d_y = targ_pose.Position.Y - curr_pose.Position.Y;
 
     % Get current robot angle
     cur_angle_quat = quaternion([curr_pose.Orientation.X curr_pose.Orientation.Y curr_pose.Orientation.Z curr_pose.Orientation.W ]);
     cur_angle_mat = quat2rotm(cur_angle_quat);
-    cur_angle = wrapToPi(-atan2(cur_angle_mat(2,3), cur_angle_mat(3,3)) - pi/2);
+    cur_angle = wrapToPi(atan2(cur_angle_mat(2,3), cur_angle_mat(3,3)))
 
     % Get angle from robot directly to the target
-    targ_ang = atan2(-d_y,-d_x);
-    delta_theta = cur_angle - targ_ang;
+    targ_ang = atan2(d_y,d_x)
+    delta_theta = targ_ang-cur_angle
 
     delta_dist = sqrt(d_x^2 + d_y^2);
 
@@ -77,7 +79,7 @@ function actuate(cmd_vel_pub, twist_in, linear_vel, ang_vel)
     twist_out = twist_in;
 
     % assign linear velocity
-    twist_out.Linear.X = linear_vel(1);
+    twist_out.Linear.X = linear_vel;
     twist_out.Linear.Y = 0;
     twist_out.Linear.Z = 0;
     % assign angular velocity
