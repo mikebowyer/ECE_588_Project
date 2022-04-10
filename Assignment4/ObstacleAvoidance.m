@@ -14,7 +14,7 @@ classdef ObstacleAvoidance
         robot_width = 306 * 10^-3; % meters Waffle
         dist_lidar_to_robot_front = 100 * 10^-3; 
         look_ahead_dist = .5; 
-        buffer_dist = 120 * 10^-3;
+        buffer_dist = 160 * 10^-3;
         cmd_ang_vel = .5;
         cmd_lin_vel = .2;
         %% Velocity Parameters

@@ -18,11 +18,19 @@ classdef TargetNavigator
         relative_positions_axis = 0;
         relative_x ;
         relative_y ;
+
+        lin_pid
+        ang_pid
+
+        stop_dist_thresh  = .5;
         
     end
 
     methods
         function obj = TargetNavigator(initial_odom_data)
+            obj.ang_pid = AngularPIDController();
+            obj.lin_pid = LinearPIDController();              
+
             obj.initial_x = initial_odom_data.Pose.Pose.Position.X;
             obj.initial_y = initial_odom_data.Pose.Pose.Position.Y;
 
@@ -34,14 +42,26 @@ classdef TargetNavigator
             obj.CurPosPlot = scatter(obj.initial_x,obj.initial_y,1000,'yellow','x');hold on;
             legend("Target Position", "Starting Position","Robot Position"); grid on;
             
-            
-
 %             obj.odomTrajFig = figure('Position',[50, 50, 550, 550]);
 %             obj.relative_x = [obj.initial_x];
 %             obj.relative_y = [obj.initial_y];
 %             obj.odomTrajPlot = scatter(obj.relative_x,obj.relative_y,[],'green','filled'); grid on;  hold on;
 %             title("Robot Historical Trajectory");
         end
+
+        function [lin_vel, ang_vel] = CalcWayPointNavVels(obj, odom_data, targ_pose, curr_time)
+            [dist_to_targ, ang_to_targ] = obj.CalcDeltaPoseToTarget(odom_data, targ_pose);
+            
+            if dist_to_targ < obj.stop_dist_thresh
+                lin_vel = 0;
+                ang_vel = 0;
+            else
+                lin_vel = obj.lin_pid.CalcLinVel(curr_time, dist_to_targ);
+                ang_vel = obj.ang_pid.CalcAngVel(curr_time, ang_to_targ);
+                
+                %title(["DistToTarg: " dist_to_targ, "AngToTarg: " ang_to_targ, "LinVel: " lin_vel, "AngVel:" ang_vel])
+            end
+        end 
         
         function [delta_dist, delta_theta] = CalcDeltaPoseToTarget(obj, odom_data, targ_pose)
             curr_pose = odom_data.Pose.Pose;

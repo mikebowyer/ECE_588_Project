@@ -17,8 +17,8 @@ odom_sub = rossubscriber('/odom');
 TurtleBot_Topic.laser = '/scan';
 laser_sub = rossubscriber('/scan'); 
 %% Target Parameters
-stop_dist_thresh  = .5;
 [targ_pose_pub,targ_pose] = rospublisher("/pose","geometry_msgs/Pose","DataFormat","struct");
+target_found = true;
 targ_pose.Position.X = 3;
 targ_pose.Position.Y = 1.75;
 %% Run Main Robot Control Loop
@@ -31,39 +31,30 @@ target_nav = TargetNavigator(initial_odom_data);
 % Setup Obstacle Avoidance Class
 obst_avoid = ObstacleAvoidance();
 
-% Setup PID Controllers and stop robot to start with.
-ang_pid = AngularPIDController();
-lin_pid = LinearPIDController();
+% Stop the Robot
+lin_vel=0;
+ang_vel=0;
+actuate(cmd_vel_pub, twist_msg, lin_vel, ang_vel); pause(1);
 
-actuate(cmd_vel_pub, twist_msg, 0, 0); pause(1);
-
-% Start while loop
 tic
- while true
+while true
     % Find target
 
     % Get Odom and Plot Target
     odom_data = receive(odom_sub);
     target_nav.PlotTarget(odom_data, targ_pose)
     
-    % Read and show lidar data
+    % Detect and avoid objects
     scan_data = receive(laser_sub);
-
-    % Determine Object is in the way
     [obj_in_way, lin_vel, ang_vel] = obst_avoid.calcObstAvoidVels(scan_data);
 
     if ~obj_in_way
-        [dist_to_targ, ang_to_targ] = target_nav.CalcDeltaPoseToTarget(odom_data, targ_pose);
-        % Run Control Algos
-        curr_time = toc;
-        if dist_to_targ < stop_dist_thresh
-            actuate(cmd_vel_pub, twist_msg, 0, 0)
-            %title("Arrived at target, stopping!")
-            %return
+
+        if target_found
+            curr_time = toc;
+            [lin_vel , ang_vel] =target_nav.CalcWayPointNavVels(odom_data, targ_pose, curr_time);
         else
-            ang_vel = ang_pid.CalcAngVel(curr_time, ang_to_targ);
-            lin_vel = lin_pid.CalcLinVel(curr_time, dist_to_targ);
-            %title(["DistToTarg: " dist_to_targ, "AngToTarg: " ang_to_targ, "LinVel: " lin_vel, "AngVel:" ang_vel])
+            % Follow Lines
         end
     end    
 
@@ -71,6 +62,7 @@ tic
     tic;
 end     
 
+%% Actuation Function
 function actuate(cmd_vel_pub, twist_in, linear_vel, ang_vel)
 
     twist_out = twist_in;
@@ -86,23 +78,4 @@ function actuate(cmd_vel_pub, twist_in, linear_vel, ang_vel)
 
     % send this velocity command to robot
     send(cmd_vel_pub,twist_out);
-end
-
-
-function [object_in_way_left, object_in_way_right] = is_there_object_in_way(xy_scan, robot_width, look_ahead_dist, buffer_dist, dist_lidar_to_robot_front)
-    object_in_way_left = false;
-    object_in_way_right = false;
-    
-    for j=1:length(xy_scan)
-        point = xy_scan(j, :);
-        if abs((robot_width + buffer_dist)/2) > abs(point(2))
-            if (look_ahead_dist + dist_lidar_to_robot_front) > abs(point(1)) && (point(1) > dist_lidar_to_robot_front)
-                if point(2) > 0
-                    object_in_way_left = true;
-                else
-                    object_in_way_right = true;
-                end
-            end 
-        end 
-    end
 end
