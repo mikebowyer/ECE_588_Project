@@ -13,8 +13,8 @@ classdef TargetPositionFinder
 
     methods
         function [xGlobal, yGlobal] = CalcTargetPosition(obj, ellipseXrelative,scan_data,robotCurrentPosX,robotCurrentPosY)
-            offset = ellipseXrelative - cameraCenterColumnX;
-            targetAngle = round(-offset*degreesPerPixel);
+            offset = ellipseXrelative - obj.cameraCenterColumnX;
+            targetAngle = round(-offset*obj.degreesPerPixel);
             rangeToTarget = 0;
             if targetAngle >= 0
                 rangeToTarget = scan_data.Ranges(targetAngle+1);
