@@ -23,24 +23,10 @@ targ_pose.Position.X = 3;
 targ_pose.Position.Y = 1.75;
 %% Run Main Robot Control Loop
 close all
-%figure('units','normalized','outerposition',[0 0 1 1])
-figure
 
 % Position Setup
 initial_odom_data = receive(odom_sub);
-initial_x_position = initial_odom_data.Pose.Pose.Position.X;
-initial_y_position = initial_odom_data.Pose.Pose.Position.Y;
-relative_x = [];
-relative_y = [];
-
-%Plot Starting Position, Target, and robot Position
-subplot(211); 
-scatter(targ_pose.Position.X,targ_pose.Position.Y,1000,'red','x','M');hold on;
-scatter(initial_x_position,initial_y_position,1000,'green','x');
-lnh = scatter(initial_x_position,initial_y_position,1000,'yellow','x');
-title("Robot Start, Target, and Current Position")
-legend("Target Position", "Starting Position","Robot Position");
-linkdata on; grid on;
+target_nav = TargetNavigator(initial_odom_data);
 
 % Setup Obstacle Avoidance Class
 obst_avoid = ObstacleAvoidance();
@@ -48,21 +34,17 @@ obst_avoid = ObstacleAvoidance();
 % Setup PID Controllers and stop robot to start with.
 ang_pid = AngularPIDController();
 lin_pid = LinearPIDController();
-obj_nav = TargetNavigator();
+
 actuate(cmd_vel_pub, twist_msg, 0, 0); pause(1);
 
 % Start while loop
-subplot(212); 
 tic
  while true
-    % Get odometry
+    % Find target
+
+    % Get Odom and Plot Target
     odom_data = receive(odom_sub);
-    current_pose = odom_data.Pose.Pose;
-    % Plot odometry
-    set(lnh,'XData',current_pose.Position.X,'YData',current_pose.Position.Y); % change the line data
-    relative_x = [relative_x, initial_x_position - current_pose.Position.X];
-    relative_y = [relative_y, initial_y_position - current_pose.Position.Y];
-    scatter(relative_x,relative_y,[],'green','filled'); grid on;
+    target_nav.PlotTarget(odom_data, targ_pose)
     
     % Read and show lidar data
     scan_data = receive(laser_sub);
@@ -71,13 +53,13 @@ tic
     [obj_in_way, lin_vel, ang_vel] = obst_avoid.calcObstAvoidVels(scan_data);
 
     if ~obj_in_way
-        [dist_to_targ, ang_to_targ] = obj_nav.CalcDeltaPoseToTarget(current_pose, targ_pose);
+        [dist_to_targ, ang_to_targ] = target_nav.CalcDeltaPoseToTarget(odom_data, targ_pose);
         % Run Control Algos
         curr_time = toc;
         if dist_to_targ < stop_dist_thresh
             actuate(cmd_vel_pub, twist_msg, 0, 0)
             title("Arrived at target, stopping!")
-            return
+            %return
         else
             ang_vel = ang_pid.CalcAngVel(curr_time, ang_to_targ);
             lin_vel = lin_pid.CalcLinVel(curr_time, dist_to_targ);

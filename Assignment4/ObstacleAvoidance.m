@@ -22,9 +22,15 @@ classdef ObstacleAvoidance
         back_forth_counter = 0;
         direction = '';
         previous_direction = 'straight';
+        %% Plot
+        
+
     end
 
     methods
+        function obj = ObstacleAvoidance()
+            
+        end
         function [obj_in_way, lin_vel, ang_vel] = calcObstAvoidVels(obj, scan_data)
             xy_scan = readCartesian(scan_data);
             [object_in_way_left, object_in_way_right] = is_there_object_in_way(obj, xy_scan);

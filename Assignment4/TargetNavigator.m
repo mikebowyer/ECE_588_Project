@@ -4,11 +4,46 @@ classdef TargetNavigator
 
     properties
         
+        TargFig
+        TargPosPlot
+        CurPosPlot
+        InitPosPlot
+        targ_x = 0;
+        targ_y = 0;
+        initial_x = 0;
+        initial_y = 0;
+  
+        odomTrajFig
+        odomTrajPlot
+        relative_positions_axis = 0;
+        relative_x ;
+        relative_y ;
+        
     end
 
     methods
+        function obj = TargetNavigator(initial_odom_data)
+            obj.initial_x = initial_odom_data.Pose.Pose.Position.X;
+            obj.initial_y = initial_odom_data.Pose.Pose.Position.Y;
+
+            % Target Fig
+            obj.TargFig = figure('Position',[0, 0, 1000, 550]);
+            title("Robot Start, Target, and Current Position")
+            obj.TargPosPlot = scatter(0,0,1000,'green','x'); hold on;
+            obj.InitPosPlot = scatter(obj.initial_x,obj.initial_y,1000,'red','x');hold on;
+            obj.CurPosPlot = scatter(obj.initial_x,obj.initial_y,1000,'yellow','x');hold on;
+            legend("Target Position", "Starting Position","Robot Position"); grid on;
+            
+
+%             obj.odomTrajFig = figure('Position',[50, 50, 550, 550]);
+%             obj.relative_x = [obj.initial_x];
+%             obj.relative_y = [obj.initial_y];
+%             obj.odomTrajPlot = scatter(obj.relative_x,obj.relative_y,[],'green','filled'); grid on;  hold on;
+%             title("Robot Historical Trajectory");
+        end
         
-        function [delta_dist, delta_theta] = CalcDeltaPoseToTarget(obj,curr_pose, targ_pose)
+        function [delta_dist, delta_theta] = CalcDeltaPoseToTarget(obj, odom_data, targ_pose)
+            curr_pose = odom_data.Pose.Pose;
             % Calculate Delta between Current Pose and Target Pose
             d_x = targ_pose.Position.X - curr_pose.Position.X;
             d_y = targ_pose.Position.Y - curr_pose.Position.Y;
@@ -23,6 +58,23 @@ classdef TargetNavigator
             delta_theta = targ_ang-cur_angle;
         
             delta_dist = sqrt(d_x^2 + d_y^2);
+        end
+
+        function PlotTarget(obj, odom_data, target_data)
+            current_pose = odom_data.Pose.Pose;
+            
+            % Update Target Figure 
+            set(obj.CurPosPlot,'XData',current_pose.Position.X,'YData',current_pose.Position.Y); % change the line data
+
+            % Update Historical Odom Data
+            %obj.relative_x = [obj.relative_x, obj.initial_x - current_pose.Position.X];
+            %obj.relative_y = [obj.relative_y, obj.initial_y - current_pose.Position.Y];
+            %set(obj.odomTrajPlot,'XData',obj.relative_x,'YData',obj.relative_x);
+
+            % Update Target Odom Data
+            obj.targ_x = target_data.Position.X;
+            obj.targ_y = target_data.Position.Y;
+            set(obj.TargPosPlot,'XData',obj.targ_x,'YData',obj.targ_y);
         end
 
     end
