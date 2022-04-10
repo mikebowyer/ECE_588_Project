@@ -58,12 +58,12 @@ tic
         curr_time = toc;
         if dist_to_targ < stop_dist_thresh
             actuate(cmd_vel_pub, twist_msg, 0, 0)
-            title("Arrived at target, stopping!")
+            %title("Arrived at target, stopping!")
             %return
         else
             ang_vel = ang_pid.CalcAngVel(curr_time, ang_to_targ);
             lin_vel = lin_pid.CalcLinVel(curr_time, dist_to_targ);
-            title(["DistToTarg: " dist_to_targ, "AngToTarg: " ang_to_targ, "LinVel: " lin_vel, "AngVel:" ang_vel])
+            %title(["DistToTarg: " dist_to_targ, "AngToTarg: " ang_to_targ, "LinVel: " lin_vel, "AngVel:" ang_vel])
         end
     end    
 

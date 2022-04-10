@@ -28,11 +28,12 @@ classdef TargetNavigator
 
             % Target Fig
             obj.TargFig = figure('Position',[0, 0, 1000, 550]);
-            title("Robot Start, Target, and Current Position")
+            title("Robot Start, Target, and Current Position");
             obj.TargPosPlot = scatter(0,0,1000,'green','x'); hold on;
             obj.InitPosPlot = scatter(obj.initial_x,obj.initial_y,1000,'red','x');hold on;
             obj.CurPosPlot = scatter(obj.initial_x,obj.initial_y,1000,'yellow','x');hold on;
             legend("Target Position", "Starting Position","Robot Position"); grid on;
+            
             
 
 %             obj.odomTrajFig = figure('Position',[50, 50, 550, 550]);

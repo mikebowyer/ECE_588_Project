@@ -23,14 +23,41 @@ classdef ObstacleAvoidance
         direction = '';
         previous_direction = 'straight';
         %% Plot
-        
+        LidarScanFig
+        LidarScanPlot
+        LidarScanAnno
 
     end
 
     methods
         function obj = ObstacleAvoidance()
+            obj.LidarScanFig = figure('Position',[1000, 550, 1000, 550]);
+            title("Robot Lidar Scan and Obstacle Avoidance Areas");
+            % Plot Robot Size
+            y1=-(obj.robot_width)/2;
+            y2=(obj.robot_width)/2;
+            x1=-obj.dist_lidar_to_robot_front;
+            x2=obj.dist_lidar_to_robot_front;
+            x = [x1, x2, x2, x1, x1];
+            y = [y1, y1, y2, y2, y1];
+            plot(x, y, 'r', 'LineWidth', 3);
+            hold on;
+        
+            % Plot Look Ahead Rectangle
+            y1=-(obj.robot_width + obj.buffer_dist)/2;
+            y2=(obj.robot_width + obj.buffer_dist)/2;
+            x1=obj.dist_lidar_to_robot_front;
+            x2=obj.dist_lidar_to_robot_front + obj.look_ahead_dist;
+            x = [x1, x2, x2, x1, x1];
+            y = [y1, y1, y2, y2, y1];
+            plot(x, y, 'b-', 'LineWidth', 3);
             
+            % Plot Lidar Points
+            obj.LidarScanPlot = scatter(0, 0);
+            obj.LidarScanAnno = annotation('textbox',[.2 .5 .3 .3],'String','Straight','FitBoxToText','on');
+            xlim([-1 4]); ylim([-2,2]); grid on;
         end
+
         function [obj_in_way, lin_vel, ang_vel] = calcObstAvoidVels(obj, scan_data)
             xy_scan = readCartesian(scan_data);
             [object_in_way_left, object_in_way_right] = is_there_object_in_way(obj, xy_scan);
@@ -49,7 +76,12 @@ classdef ObstacleAvoidance
                 lin_vel = obj.cmd_lin_vel;
                 obj_in_way = false;
             end
-
+            
+            %Plot it
+            data = readCartesian(scan_data);
+            set(obj.LidarScanPlot,'XData',data(:,1),'YData', data(:,2));
+            set(obj.LidarScanAnno,'String', strcat("Turn Dir: ",turn_dir));
+            
         end
 
         function [object_in_way_left, object_in_way_right] = is_there_object_in_way(obj, xy_scan)
@@ -117,5 +149,6 @@ classdef ObstacleAvoidance
                 direction = 'right';
             end            
         end
+
     end
 end
