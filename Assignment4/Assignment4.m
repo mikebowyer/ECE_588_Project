@@ -48,6 +48,7 @@ obst_avoid = ObstacleAvoidance();
 % Setup PID Controllers and stop robot to start with.
 ang_pid = AngularPIDController();
 lin_pid = LinearPIDController();
+obj_nav = TargetNavigator();
 actuate(cmd_vel_pub, twist_msg, 0, 0); pause(1);
 
 % Start while loop
@@ -70,7 +71,7 @@ tic
     [obj_in_way, lin_vel, ang_vel] = obst_avoid.calcObstAvoidVels(scan_data);
 
     if ~obj_in_way
-        [dist_to_targ, ang_to_targ] = CalcDeltaPoseToTarget(current_pose, targ_pose);
+        [dist_to_targ, ang_to_targ] = obj_nav.CalcDeltaPoseToTarget(current_pose, targ_pose);
         % Run Control Algos
         curr_time = toc;
         if dist_to_targ < stop_dist_thresh
@@ -82,29 +83,11 @@ tic
             lin_vel = lin_pid.CalcLinVel(curr_time, dist_to_targ);
             title(["DistToTarg: " dist_to_targ, "AngToTarg: " ang_to_targ, "LinVel: " lin_vel, "AngVel:" ang_vel])
         end
-        
     end    
 
     actuate(cmd_vel_pub, twist_msg, lin_vel, ang_vel)
     tic;
 end     
-%% Calculate Delta between Current Pose and Target Pose
-function [delta_dist, delta_theta] = CalcDeltaPoseToTarget(curr_pose, targ_pose)
-    d_x = targ_pose.Position.X - curr_pose.Position.X;
-    d_y = targ_pose.Position.Y - curr_pose.Position.Y;
-
-    % Get current robot angle
-    cur_angle_quat = quaternion([curr_pose.Orientation.X curr_pose.Orientation.Y curr_pose.Orientation.Z curr_pose.Orientation.W ]);
-    cur_angle_mat = quat2rotm(cur_angle_quat);
-    cur_angle = wrapToPi(atan2(cur_angle_mat(2,3), cur_angle_mat(3,3)));
-
-    % Get angle from robot directly to the target
-    targ_ang = atan2(d_y,d_x);
-    delta_theta = targ_ang-cur_angle;
-
-    delta_dist = sqrt(d_x^2 + d_y^2);
-end
-
 
 function actuate(cmd_vel_pub, twist_in, linear_vel, ang_vel)
 
