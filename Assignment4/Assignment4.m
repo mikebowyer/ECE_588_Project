@@ -16,9 +16,14 @@ odom_sub = rossubscriber('/odom');
 % Lidar
 TurtleBot_Topic.laser = '/scan';
 laser_sub = rossubscriber('/scan'); 
+
+% Camera
+TurtleBot_Topic.picam = "/camera/rgb/image_raw/compressed";
+%TurtleBot_Topic.picam = "/raspicam_node/image/compressed";
+image_sub = rossubscriber(TurtleBot_Topic.picam);
 %% Target Parameters
 [targ_pose_pub,targ_pose] = rospublisher("/pose","geometry_msgs/Pose","DataFormat","struct");
-target_found = true;
+target_found = false;
 targ_pose.Position.X = 3;
 targ_pose.Position.Y = 1.75;
 %% Run Main Robot Control Loop
@@ -31,6 +36,9 @@ target_nav = TargetNavigator(initial_odom_data);
 % Setup Obstacle Avoidance Class
 obst_avoid = ObstacleAvoidance();
 
+% Setup Line Following Class
+line_follower = LineFollower();
+
 % Stop the Robot
 lin_vel=0;
 ang_vel=0;
@@ -39,6 +47,7 @@ actuate(cmd_vel_pub, twist_msg, lin_vel, ang_vel); pause(1);
 tic
 while true
     % Find target
+    image_compressed = receive(image_sub);
 
     % Get Odom and Plot Target
     odom_data = receive(odom_sub);
@@ -55,6 +64,7 @@ while true
             [lin_vel , ang_vel] =target_nav.CalcWayPointNavVels(odom_data, targ_pose, curr_time);
         else
             % Follow Lines
+            [lin_vel , ang_vel] = line_follower.CalcLineFollowVels(image_compressed);
         end
     end    
 
