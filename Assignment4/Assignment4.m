@@ -39,6 +39,9 @@ obst_avoid = ObstacleAvoidance();
 % Setup Line Following Class
 line_follower = LineFollower();
 
+% Setup Target Findger
+target_finder = TargetPositionFinder();
+
 % Stop the Robot
 lin_vel=0;
 ang_vel=0;
@@ -46,9 +49,6 @@ actuate(cmd_vel_pub, twist_msg, lin_vel, ang_vel); pause(1);
 
 tic
 while true
-    % Find target
-    image_compressed = receive(image_sub);
-
     % Get Odom and Plot Target
     odom_data = receive(odom_sub);
     target_nav.PlotTarget(odom_data, targ_pose)
@@ -56,6 +56,11 @@ while true
     % Detect and avoid objects
     scan_data = receive(laser_sub);
     [obj_in_way, lin_vel, ang_vel] = obst_avoid.calcObstAvoidVels(scan_data);
+
+    % Find target
+    image_compressed = receive(image_sub);
+    [ellipseX, ellipseY] =target_finder.FindTargetPixelCoords(image_compressed);
+    [targ_pose.Position.X, targ_pose.Position.Y] = target_finder.CalcTargetPosition(ellipseX,scan_data,odom_data);
 
     if ~obj_in_way
 
