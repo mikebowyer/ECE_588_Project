@@ -1,9 +1,9 @@
 clear all;
 rosshutdown;
-ip_TurtleBot = '127.0.0.1';    
-ip_Matlab = '127.0.0.1 ';  
-%ip_TurtleBot = '10.0.1.57';    
-%ip_Matlab = '10.0.1.54'; 
+%ip_TurtleBot = '127.0.0.1';    
+%ip_Matlab = '127.0.0.1 ';  
+ip_TurtleBot = '10.0.1.57';    
+ip_Matlab = '10.0.1.54'; 
 setenv('ROS_MASTER_URI', strcat('http://', ip_TurtleBot,':11311'))
 setenv('ROS_IP', ip_Matlab)
 rosinit(ip_TurtleBot)
@@ -18,8 +18,8 @@ TurtleBot_Topic.laser = '/scan';
 laser_sub = rossubscriber('/scan'); 
 
 % Camera
-TurtleBot_Topic.picam = "/camera/rgb/image_raw/compressed";
-%TurtleBot_Topic.picam = "/raspicam_node/image/compressed";
+%TurtleBot_Topic.picam = "/camera/rgb/image_raw/compressed";
+TurtleBot_Topic.picam = "/raspicam_node/image/compressed";
 image_sub = rossubscriber(TurtleBot_Topic.picam);
 %% Target Parameters
 [targ_pose_pub,targ_pose] = rospublisher("/pose","geometry_msgs/Pose","DataFormat","struct");
@@ -60,7 +60,9 @@ while true
     % Find target
     image_compressed = receive(image_sub);
     [ellipseX, ellipseY] =target_finder.FindTargetPixelCoords(image_compressed);
-    [targ_pose.Position.X, targ_pose.Position.Y] = target_finder.CalcTargetPosition(ellipseX,scan_data,odom_data);
+    if ~isnan(ellipseX)
+        [targ_pose.Position.X, targ_pose.Position.Y] = target_finder.CalcTargetPosition(ellipseX,scan_data,odom_data);
+    end
 
     if ~obj_in_way
 

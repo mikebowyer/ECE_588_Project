@@ -4,19 +4,19 @@ classdef ObstacleAvoidance
 
     properties
         %% BURGER
-%         robot_width = 178 * 10^-3; % meters Burger
-%         dist_lidar_to_robot_front = 90 * 10^-3; 
-%         look_ahead_dist = .2; 
-%         buffer_dist = 130 * 10^-3;
-%         cmd_ang_vel = .1;
-%         cmd_lin_vel = .025;
+        robot_width = 178 * 10^-3; % meters Burger
+        dist_lidar_to_robot_front = 90 * 10^-3; 
+        look_ahead_dist = .2; 
+        buffer_dist = 130 * 10^-3;
+        cmd_ang_vel = .1;
+        cmd_lin_vel = .025;
         %% WAFFLE
-        robot_width = 306 * 10^-3; % meters Waffle
-        dist_lidar_to_robot_front = 100 * 10^-3; 
-        look_ahead_dist = .5; 
-        buffer_dist = 160 * 10^-3;
-        cmd_ang_vel = .5;
-        cmd_lin_vel = .2;
+%         robot_width = 306 * 10^-3; % meters Waffle
+%         dist_lidar_to_robot_front = 100 * 10^-3; 
+%         look_ahead_dist = .5; 
+%         buffer_dist = 160 * 10^-3;
+%         cmd_ang_vel = .5;
+%         cmd_lin_vel = .2;
         %% Velocity Parameters
 
         back_forth_counter = 0;

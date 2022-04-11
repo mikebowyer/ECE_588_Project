@@ -8,7 +8,7 @@ classdef LinearPIDController
         Ki = 10;
         Kd = .0003;
         vel_low_lim = 0;
-        vel_up_lim = .26;
+        vel_up_lim = .05;
         
         % Runtime Vars
         last_time = 0;

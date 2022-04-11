@@ -47,8 +47,8 @@ classdef TargetPositionFinder
 
         function [ellipseX, ellipseY] = FindTargetPixelCoords(obj, image_compressed)
             image_compressed.Format = 'bgr8; jpeg compressed bgr8';
-            image = readImage(image_compressed);
-            %image = imrotate(readImage(image_compressed), 180);
+            %image = readImage(image_compressed);
+            image = imrotate(readImage(image_compressed), 180);
             targetImageHSV = rgb2hsv(image);
             targetImageSonly = targetImageHSV(:,:,2);
             %subplot(233); imshow(targetImageSonly)
@@ -62,18 +62,28 @@ classdef TargetPositionFinder
             params.numBest = 1;
             params.rotation = 90;
             params.rotationSpan = 10;
-        
+            
+            ellipseX = NaN;
+            ellipseY = NaN;
             % note that the edge (or gradient) image is used
             bestFits = ellipseDetection(bw_Canny, params);
-            ellipseX = bestFits(1,1); %column
-            ellipseY = bestFits(1,2); %row
+            if bestFits(6) > 10
+                ellipseX = bestFits(1,1); %column
+                ellipseY = bestFits(1,2); %row
+                % Update Images
+                set(obj.EdgePlot, 'CData', bw_Canny);
+                image = insertShape(image,'circle',[ellipseX ellipseY bestFits(1,3)],'LineWidth',5);
+                set(obj.EllipPlot, 'CData', image);
+            else
+                return;
+            end
             %imshow(image)
             %ellipse(bestFits(1,3),bestFits(1,4),bestFits(1,5)*pi/180,bestFits(1,1),bestFits(1,2),'r');    
 
             % Update Images
-            set(obj.EdgePlot, 'CData', bw_Canny);
-            image = insertShape(image,'circle',[ellipseX ellipseY bestFits(1,3)],'LineWidth',5);
-            set(obj.EllipPlot, 'CData', image);
+%             set(obj.EdgePlot, 'CData', bw_Canny);
+%             image = insertShape(image,'circle',[ellipseX ellipseY bestFits(1,3)],'LineWidth',5);
+%             set(obj.EllipPlot, 'CData', image);
         end
     end
 end

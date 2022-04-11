@@ -19,8 +19,13 @@ classdef AngularPIDController
             obj.error_sum = obj.error_sum + cur_ang_to_target;
             int_err = (obj.error_sum + cur_ang_to_target)/ obj.Ki;
             der_err = obj.Kd *(cur_ang_to_target - obj.last_ang_to_target) / (current_time - obj.last_time);
-
+            
             ang_vel = (prop_err + int_err - der_err);
+
+            %Brandon - for running on real robot
+            if ang_vel > 0.1
+                ang_vel = 0.1;
+            end
 
             obj.last_ang_to_target = cur_ang_to_target;
             obj.last_time = current_time;

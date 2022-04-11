@@ -35,7 +35,7 @@ classdef LineFollower
             lineBestFitPoints = obj.BestFitLineAvg(verticalLines);
         
             % Converting line of best fit to intercept and slope
-            [theta, intercept, extent_points] = obj.calcBestFitLineInfo(lineBestFitPoints, img_height);
+            [theta, intercept_pixel, extent_points] = obj.calcBestFitLineInfo(lineBestFitPoints, img_height);
 
             [lin_vel, ang_vel] = obj.calcCmdVelMsg(intercept_pixel, theta, img_width);
             obj.lastDirection = direction;
@@ -194,7 +194,7 @@ classdef LineFollower
             ang_vel = theta_part + intercept_part;
         
             if abs(ang_vel) > 0.2
-                ang_vel = 0.2 * sign(twist_out.Angular.Z)
+                ang_vel = 0.2 * sign(ang_vel)
             end
             
             %twist_out.Angular.Z = max_turn_z_val * (-theta/90) * (-(1 - ratio_intercept_from_img_center)*1.5);
