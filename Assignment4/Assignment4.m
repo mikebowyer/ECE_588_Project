@@ -47,6 +47,10 @@ lin_vel=0;
 ang_vel=0;
 actuate(cmd_vel_pub, twist_msg, lin_vel, ang_vel); pause(1);
 
+%set up figures
+figure
+imagePlot = imshow([]);
+
 tic
 while true
     % Get Odom and Plot Target
@@ -65,6 +69,12 @@ while true
             [targ_pose.Position.X, targ_pose.Position.Y, target_found] = target_finder.CalcTargetPosition(ellipseX,scan_data,odom_data);
         end
     end
+    
+    image_compressed.Format = 'bgr8; jpeg compressed bgr8';
+    %image = readImage(image_compressed);
+    image = imrotate(readImage(image_compressed), 180);
+    set(imagePlot, 'CData', image);
+
 
     if ~obj_in_way
 

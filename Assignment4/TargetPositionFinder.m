@@ -50,20 +50,9 @@ classdef TargetPositionFinder
                 rangeToTarget = scan_data.Ranges(length(scan_data.Ranges) + targetAngle);
             end
             fprintf(strcat('Distance to target: ', string(rangeToTarget), '\n'));
-            %Next step, convert target coordinates to global coordinates
-            %robotCurrentHeading = (robotCurrentAngle * 180); %get the angle the robot is facing
-            %angleFromXaxis = robotCurrentHeading - 90; % 0 or 180 deg would be 90 deg from x axis
-            %robotAngleFromOrigin = atan(robotCurrentPosY/robotCurrentPosX); 
+            %Next step, convert target coordinates to global coordinates 
             angleOfTargetFromGlobalXaxis = deg2rad(targetAngle) + robotCurrentAngle;
             fprintf(strcat('Global angle: ', string(angleOfTargetFromGlobalXaxis),' Angle to target: ', string(targetAngle), ' Robot heading: ', string(robotCurrentAngle), '\n'));
-%             if angleOfTargetFromGlobalYaxis > 90
-%                 %go off the x axis instead
-%                 angleOfTargetFromGlobalYaxis = angleOfTargetFromGlobalYaxis - 90;   % in case it went around more than 90 degrees, gets it back to a right triangle
-%             elseif angleOfTargetFromGlobalYaxis < -90
-%                 angleOfTargetFromGlobalYaxis = angleOfTargetFromGlobalYaxis + 90;
-%             end
-            %angleToTargetInGlobalCoords = robotCurrentHeading - deg2rad(targetAngle); %angle between straigh line path to target and global X axis
-            %angleOfTargetFromGlobalXaxisRad = deg2rad(angleOfTargetFromGlobalXaxis);
             potentialXGlobal = (rangeToTarget * cos(angleOfTargetFromGlobalXaxis)) + robotCurrentPosX;
             potentialYGlobal = rangeToTarget * sin(angleOfTargetFromGlobalXaxis) + robotCurrentPosY;
             if obj.TargetDebouncer(potentialXGlobal, potentialYGlobal)

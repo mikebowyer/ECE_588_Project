@@ -6,9 +6,17 @@ classdef LineFollower
         image_topic = "/camera/rgb/image_raw/compressed";
         %image_topic  = "/raspicam_node/image/compressed";
         lastDirection = 'unknown';
+        EdgePlot;
+        ImgFig;
     end
 
     methods
+
+        function obj = LineFollower()
+            obj.ImgFig = figure('Position',[0, 540, 960, 540]);
+            obj.EdgePlot = imshow([]);
+        end
+
         function [lin_vel, ang_vel] = CalcLineFollowVels(obj, image_compressed)
             image = obj.CleanUpImage(image_compressed);
             [img_height, img_width]= obj.imageSizeFinder(image);
@@ -19,7 +27,14 @@ classdef LineFollower
             verticalLines = obj.VerticalHoughWithBoundaryLines(boundaryBWImage);
             horizontalLines = obj.HorizontalHoughWithBoundaryLines(boundaryBWImage);
             lines = [verticalLines, horizontalLines];
-
+            imageWithLines = boundaryBWImage;
+            
+            for k=1:length(lines)
+                xy = [lines(k).point1; lines(k).point2];
+%                 line(obj.EdgePlot, xy(:,1), xy(:,2),'LineWidth',2,'Color','green')       
+                imageWithLines = insertShape(imageWithLines,'Line',[xy(:,1) xy(:,2)],'LineWidth',5, 'Color','cyan');
+            end
+            
             direction = obj.GetDirectionFromHorizontalLines(img_width, horizontalLines, obj.lastDirection);
 
             % Getting Line of Best Fit from Hough Lines
@@ -33,10 +48,10 @@ classdef LineFollower
                 return
             end
             lineBestFitPoints = obj.BestFitLineAvg(verticalLines);
-        
+            imageWithLines = insertShape(imageWithLines,'Line',[lineBestFitPoints(:,1) lineBestFitPoints(:,2)],'LineWidth',5, 'Color','red');
+            set(obj.EdgePlot, 'CData', imageWithLines);
             % Converting line of best fit to intercept and slope
             [theta, intercept_pixel, extent_points] = obj.calcBestFitLineInfo(lineBestFitPoints, img_height);
-
             [lin_vel, ang_vel] = obj.calcCmdVelMsg(intercept_pixel, theta, img_width);
             obj.lastDirection = direction;
         end
@@ -200,6 +215,22 @@ classdef LineFollower
             %twist_out.Angular.Z = max_turn_z_val * (-theta/90) * (-(1 - ratio_intercept_from_img_center)*1.5);
          
         end
+        
+        function PlotGroundLines(image, lines)
+            
+            %subplot(223); imshow(image); hold on;
+            for k = 1:length(lines)
+               xy = [lines(k).point1; lines(k).point2];
+               subplot(223);plot(xy(:,1),xy(:,2),'LineWidth',2,'Color','green');
+            end  
+        end
 
+%         function PlotInterceptTheta(lineBestFitPoints, intercept,theta, image, z)
+%             subplot(224);
+%             imshow(image);
+%             hold on; 
+%             plot(lineBestFitPoints(:,1),lineBestFitPoints(:,2),'LineWidth',2,'Color','red');
+%             title("Intercept Pixel: " + ceil(intercept) + "   Theta: " + theta + " Z: " + z)
+%         end
     end
 end
