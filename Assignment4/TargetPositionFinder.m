@@ -9,11 +9,17 @@ classdef TargetPositionFinder
         pixelSize = 0.0000014;
         csize = 0.0000014; %pixel sizeis csize
         degreesPerPixel = 54/640;
+        lastXGlobal;
+        lastYGlobal;
+        targetFoundCounter;
+        targetDebounceDist = 0.05;
 
         %% Plots for Debugging
         ImgFig
         EdgePlot
         EllipPlot
+
+        
     end
 
     methods
@@ -22,12 +28,19 @@ classdef TargetPositionFinder
             subplot(211);
             obj.EdgePlot = imshow([]);
             subplot(212);
-            obj.EllipPlot = imshow([]);
+            obj.EllipPlot = imshow([]);  
+            obj.lastXGlobal = 0;
+            obj.lastYGlobal = 0;
+            obj.targetFoundCounter = 0;
         end
 
-        function [xGlobal, yGlobal] = CalcTargetPosition(obj, ellipseXrelative,scan_data,odom_data)
+        function [xGlobal, yGlobal, targetFound] = CalcTargetPosition(obj, ellipseXrelative,scan_data,odom_data)
             robotCurrentPosX = odom_data.Pose.Pose.Position.X;
             robotCurrentPosY = odom_data.Pose.Pose.Position.Y;
+            curr_pose= odom_data.Pose.Pose; %ranges from 0 to 1, 0 being the heading it started with, 1 being the opposite direction
+            cur_angle_quat = quaternion([curr_pose.Orientation.X curr_pose.Orientation.Y curr_pose.Orientation.Z curr_pose.Orientation.W ]);
+            cur_angle_mat = quat2rotm(cur_angle_quat);
+            robotCurrentAngle = wrapToPi(atan2(cur_angle_mat(2,3), cur_angle_mat(3,3)));
             offset = ellipseXrelative - obj.cameraCenterColumnX;
             targetAngle = round(-offset*obj.degreesPerPixel);
             rangeToTarget = 0;
@@ -36,13 +49,54 @@ classdef TargetPositionFinder
             else
                 rangeToTarget = scan_data.Ranges(length(scan_data.Ranges) + targetAngle);
             end
-%             x = sin(deg2rad(targetAngle)) * rangeToTarget;
-%             y = cos(deg2rad(targetAngle)) * rangeToTarget;
-            %Next step, convert taret coordinates to global coordinates
-            robotCurrentHeading = tan(robotCurrentPosY/robotCurrentPosX); %get the angle the robot is facing
-            angleToTargetInGlobalCoords = robotCurrentHeading - rad2deg(targetAngle); %angle between straigh line path to target and global X axis
-            xGlobal = rangeToTarget * cos(angleToTargetInGlobalCoords);
-            yGlobal = rangeToTarget * sin(angleToTargetInGlobalCoords);
+            fprintf(strcat('Distance to target: ', string(rangeToTarget), '\n'));
+            %Next step, convert target coordinates to global coordinates
+            %robotCurrentHeading = (robotCurrentAngle * 180); %get the angle the robot is facing
+            %angleFromXaxis = robotCurrentHeading - 90; % 0 or 180 deg would be 90 deg from x axis
+            %robotAngleFromOrigin = atan(robotCurrentPosY/robotCurrentPosX); 
+            angleOfTargetFromGlobalXaxis = deg2rad(targetAngle) + robotCurrentAngle;
+            fprintf(strcat('Global angle: ', string(angleOfTargetFromGlobalXaxis),' Angle to target: ', string(targetAngle), ' Robot heading: ', string(robotCurrentAngle), '\n'));
+%             if angleOfTargetFromGlobalYaxis > 90
+%                 %go off the x axis instead
+%                 angleOfTargetFromGlobalYaxis = angleOfTargetFromGlobalYaxis - 90;   % in case it went around more than 90 degrees, gets it back to a right triangle
+%             elseif angleOfTargetFromGlobalYaxis < -90
+%                 angleOfTargetFromGlobalYaxis = angleOfTargetFromGlobalYaxis + 90;
+%             end
+            %angleToTargetInGlobalCoords = robotCurrentHeading - deg2rad(targetAngle); %angle between straigh line path to target and global X axis
+            %angleOfTargetFromGlobalXaxisRad = deg2rad(angleOfTargetFromGlobalXaxis);
+            potentialXGlobal = (rangeToTarget * cos(angleOfTargetFromGlobalXaxis)) + robotCurrentPosX;
+            potentialYGlobal = rangeToTarget * sin(angleOfTargetFromGlobalXaxis) + robotCurrentPosY;
+            if obj.TargetDebouncer(potentialXGlobal, potentialYGlobal)
+                xGlobal = potentialXGlobal;
+                yGlobal = potentialYGlobal;
+                targetFound = true;
+            else
+                targetFound = false;
+                xGlobal = NaN;
+                yGlobal = NaN;
+            end
+        end
+
+        function targetFound = TargetDebouncer(obj, potentialXGlobal, potentialYGlobal)
+            persistent lastXGlobal;
+            persistent lastYGlobal;
+            persistent targetFoundCounter;
+            if isempty(lastXGlobal)
+                lastXGlobal = 0;
+                lastYGlobal = 0;
+                targetFoundCounter = 0;
+            end
+            targetFound = false;
+            if abs(lastXGlobal - potentialXGlobal) < obj.targetDebounceDist & abs(lastYGlobal - potentialYGlobal) < obj.targetDebounceDist
+                targetFoundCounter = targetFoundCounter + 1;
+            else
+                targetFoundCounter = 0;
+            end
+            if targetFoundCounter >= 5
+                targetFound = true;
+            end
+            lastXGlobal = potentialXGlobal;
+            lastYGlobal = potentialYGlobal;
         end
 
         function [ellipseX, ellipseY] = FindTargetPixelCoords(obj, image_compressed)

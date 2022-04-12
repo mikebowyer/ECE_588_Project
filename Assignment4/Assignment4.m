@@ -59,9 +59,11 @@ while true
 
     % Find target
     image_compressed = receive(image_sub);
-    [ellipseX, ellipseY] =target_finder.FindTargetPixelCoords(image_compressed);
-    if ~isnan(ellipseX)
-        [targ_pose.Position.X, targ_pose.Position.Y] = target_finder.CalcTargetPosition(ellipseX,scan_data,odom_data);
+    if(~target_found)
+        [ellipseX, ellipseY] =target_finder.FindTargetPixelCoords(image_compressed);
+        if ~isnan(ellipseX)
+            [targ_pose.Position.X, targ_pose.Position.Y, target_found] = target_finder.CalcTargetPosition(ellipseX,scan_data,odom_data);
+        end
     end
 
     if ~obj_in_way

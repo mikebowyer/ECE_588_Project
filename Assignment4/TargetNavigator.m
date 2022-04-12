@@ -23,7 +23,7 @@ classdef TargetNavigator
         lin_pid
         ang_pid
 
-        stop_dist_thresh  = .5;
+        stop_dist_thresh  = .2;
         
     end
 

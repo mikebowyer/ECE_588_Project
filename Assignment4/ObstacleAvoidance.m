@@ -6,7 +6,7 @@ classdef ObstacleAvoidance
         %% BURGER
         robot_width = 178 * 10^-3; % meters Burger
         dist_lidar_to_robot_front = 90 * 10^-3; 
-        look_ahead_dist = .2; 
+        look_ahead_dist = .15; 
         buffer_dist = 130 * 10^-3;
         cmd_ang_vel = .1;
         cmd_lin_vel = .025;
