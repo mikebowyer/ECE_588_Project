@@ -65,7 +65,7 @@ while true
     % Control the boto
     twist_msg = calcCmdVelMsg(intercept, theta, twist_msg, img_width);
     PlotInterceptTheta(extent_points, intercept,theta, image, twist_msg.Angular.Z)
-    send(cmd_vel_pub,twist_msg);
+    %send(cmd_vel_pub,twist_msg);
 end
      
 %%

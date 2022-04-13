@@ -48,8 +48,7 @@ ang_vel=0;
 actuate(cmd_vel_pub, twist_msg, lin_vel, ang_vel); pause(1);
 
 %set up figures
-figure
-imagePlot = imshow([]);
+
 
 tic
 while true
@@ -63,24 +62,22 @@ while true
 
     % Find target
     image_compressed = receive(image_sub);
-    if(~target_found)
-        [ellipseX, ellipseY] =target_finder.FindTargetPixelCoords(image_compressed);
+    [ellipseX, ellipseY] =target_finder.FindTargetPixelCoords(image_compressed);
+    if(~target_found)        
         if ~isnan(ellipseX)
             [targ_pose.Position.X, targ_pose.Position.Y, target_found] = target_finder.CalcTargetPosition(ellipseX,scan_data,odom_data);
         end
     end
-    
-    image_compressed.Format = 'bgr8; jpeg compressed bgr8';
-    %image = readImage(image_compressed);
-    image = imrotate(readImage(image_compressed), 180);
-    set(imagePlot, 'CData', image);
-
 
     if ~obj_in_way
 
         if target_found
             curr_time = toc;
-            [lin_vel , ang_vel] =target_nav.CalcWayPointNavVels(odom_data, targ_pose, curr_time);
+            [lin_vel , ang_vel, dist_to_targ] =target_nav.CalcWayPointNavVels(odom_data, targ_pose, curr_time);
+            if dist_to_targ < 0.35
+                obst_avoid.buffer_dist = 0.1;
+                obst_avoid.look_ahead_dist = 0.1;
+            end
         else
             % Follow Lines
             [lin_vel , ang_vel] = line_follower.CalcLineFollowVels(image_compressed);
@@ -93,17 +90,17 @@ end
 
 %% Actuation Function
 function actuate(cmd_vel_pub, twist_in, linear_vel, ang_vel)
-
+    
     twist_out = twist_in;
 
     % assign linear velocity
-    twist_out.Linear.X = linear_vel;
+    twist_out.Linear.X = min(max(linear_vel,0),0.05);
     twist_out.Linear.Y = 0;
     twist_out.Linear.Z = 0;
     % assign angular velocity
     twist_out.Angular.X = 0;
     twist_out.Angular.Y = 0;
-    twist_out.Angular.Z = ang_vel;
+    twist_out.Angular.Z = min(max(ang_vel,-0.1),0.1);
 
     % send this velocity command to robot
     send(cmd_vel_pub,twist_out);

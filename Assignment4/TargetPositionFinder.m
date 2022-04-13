@@ -114,19 +114,13 @@ classdef TargetPositionFinder
                 ellipseX = bestFits(1,1); %column
                 ellipseY = bestFits(1,2); %row
                 % Update Images
-                set(obj.EdgePlot, 'CData', bw_Canny);
+                
                 image = insertShape(image,'circle',[ellipseX ellipseY bestFits(1,3)],'LineWidth',5);
-                set(obj.EllipPlot, 'CData', image);
-            else
-                return;
             end
-            %imshow(image)
-            %ellipse(bestFits(1,3),bestFits(1,4),bestFits(1,5)*pi/180,bestFits(1,1),bestFits(1,2),'r');    
-
-            % Update Images
-%             set(obj.EdgePlot, 'CData', bw_Canny);
-%             image = insertShape(image,'circle',[ellipseX ellipseY bestFits(1,3)],'LineWidth',5);
-%             set(obj.EllipPlot, 'CData', image);
+            set(obj.EdgePlot, 'CData', bw_Canny);
+            title('Target Edge Canny Output');
+            set(obj.EllipPlot, 'CData', image);
+            title('Target Image Finder');
         end
     end
 end

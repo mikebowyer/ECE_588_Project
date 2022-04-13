@@ -52,7 +52,7 @@ classdef TargetNavigator
             obj.TargAnno = annotation('textbox',[.0 .0 .5 .3],'String','Initializing','FitBoxToText','on');
         end
 
-        function [lin_vel, ang_vel] = CalcWayPointNavVels(obj, odom_data, targ_pose, curr_time)
+        function [lin_vel, ang_vel, dist_to_targ] = CalcWayPointNavVels(obj, odom_data, targ_pose, curr_time)
             [dist_to_targ, ang_to_targ] = obj.CalcDeltaPoseToTarget(odom_data, targ_pose);
             
             if dist_to_targ < obj.stop_dist_thresh

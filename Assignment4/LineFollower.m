@@ -24,9 +24,9 @@ classdef LineFollower
             sufficientPixels = obj.CheckIfSufficientPixels(greenPoints, img_height*img_width, 0.05);
             boundaries = obj.findBoundaries(greenPoints, image);
             boundaryBWImage = obj.ConvertBoundariesToBW(image, boundaries);
-            verticalLines = obj.VerticalHoughWithBoundaryLines(boundaryBWImage);
-            horizontalLines = obj.HorizontalHoughWithBoundaryLines(boundaryBWImage);
-            lines = [verticalLines, horizontalLines];
+            lines = obj.VerticalHoughWithBoundaryLines(boundaryBWImage);
+            %horizontalLines = obj.HorizontalHoughWithBoundaryLines(boundaryBWImage);
+            %lines = [verticalLines, horizontalLines];
             imageWithLines = boundaryBWImage;
             
             for k=1:length(lines)
@@ -35,25 +35,21 @@ classdef LineFollower
                 imageWithLines = insertShape(imageWithLines,'Line',[xy(:,1) xy(:,2)],'LineWidth',5, 'Color','cyan');
             end
             
-            direction = obj.GetDirectionFromHorizontalLines(img_width, horizontalLines, obj.lastDirection);
+            %direction = obj.GetDirectionFromHorizontalLines(img_width, horizontalLines, obj.lastDirection);
 
             % Getting Line of Best Fit from Hough Lines
-            if (length(verticalLines) == 0) || ~sufficientPixels
+            if (length(lines) == 0) || ~sufficientPixels
                 lin_vel = .01;
-                if strcmp(direction, 'left')
-                    ang_vel = .1;
-                else
-                    ang_vel = -.1;
-                end
+                ang_vel = 0;
                 return
             end
-            lineBestFitPoints = obj.BestFitLineAvg(verticalLines);
+            lineBestFitPoints = obj.BestFitLineAvg(lines);
             imageWithLines = insertShape(imageWithLines,'Line',[lineBestFitPoints(:,1) lineBestFitPoints(:,2)],'LineWidth',5, 'Color','red');
             set(obj.EdgePlot, 'CData', imageWithLines);
             % Converting line of best fit to intercept and slope
             [theta, intercept_pixel, extent_points] = obj.calcBestFitLineInfo(lineBestFitPoints, img_height);
             [lin_vel, ang_vel] = obj.calcCmdVelMsg(intercept_pixel, theta, img_width);
-            obj.lastDirection = direction;
+            %obj.lastDirection = direction;
         end
 
         function img_out = CleanUpImage(obj,image_compressed)
@@ -70,10 +66,10 @@ classdef LineFollower
         function greenPoints = GetGreenPoints(obj, originalImage)
             redLowerBound =40;% 
             redUpperBound =120;%
-            greenLowerBound =70;% 
-            greenUpperBound =100;%
-            blueLowerBound =15;% 
-            blueUpperBound =45;% 
+            greenLowerBound =90;% 
+            greenUpperBound =130;%
+            blueLowerBound =30;% 
+            blueUpperBound =60;% 
             greenPoints = redUpperBound>=originalImage(:,:,1) & originalImage(:,:,1)>=redLowerBound & originalImage(:,:,2)<=greenUpperBound & originalImage(:,:,2)>=greenLowerBound & originalImage(:,:,3)<=blueUpperBound & originalImage(:,:,3)>=blueLowerBound;
             %subplot(222); imshow(greenPoints)
         end

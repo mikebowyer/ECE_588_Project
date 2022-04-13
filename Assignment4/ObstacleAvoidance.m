@@ -6,8 +6,8 @@ classdef ObstacleAvoidance
         %% BURGER
         robot_width = 178 * 10^-3; % meters Burger
         dist_lidar_to_robot_front = 90 * 10^-3; 
-        look_ahead_dist = .15; 
-        buffer_dist = 130 * 10^-3;
+        look_ahead_dist = .25; 
+        buffer_dist = 160 * 10^-3;
         cmd_ang_vel = .1;
         cmd_lin_vel = .025;
         %% WAFFLE
@@ -31,7 +31,7 @@ classdef ObstacleAvoidance
 
     methods
         function obj = ObstacleAvoidance()
-            obj.LidarScanFig = figure('Position',[960, 540, 960, 540]);
+            obj.LidarScanFig = figure('Position',[960, 500, 960, 500]);
             title("Robot Lidar Scan and Obstacle Avoidance Areas");
             % Plot Robot Size
             y1=-(obj.robot_width)/2;
@@ -80,7 +80,20 @@ classdef ObstacleAvoidance
             %Plot it
             data = readCartesian(scan_data);
             set(obj.LidarScanPlot,'XData',data(:,1),'YData', data(:,2));
-            set(obj.LidarScanAnno,'String', strcat("Turn Dir: ",turn_dir));
+            
+            legend('Obstacle Avoidance Buffer', 'Robot Size', 'Lidar points');
+            stringToWrite = '';
+            if strcmp(turn_dir, 'straight')
+                stringToWrite = 'Object In the way: False   Turning Away from Object: NA';
+            elseif strcmp(turn_dir, 'left')
+                stringToWrite = 'Object In the way: True    Turning Away from Object: left';
+            elseif strcmp(turn_dir, 'right')
+                stringToWrite = 'Object In the way: True    Turning Away from Object: right';
+            end
+            set(obj.LidarScanFig,'Name',stringToWrite);
+
+            %set(obj.LidarScanAnno,'String', strcat("Turn Dir: ",turn_dir));
+            
             
         end
 
@@ -148,6 +161,14 @@ classdef ObstacleAvoidance
             else
                 direction = 'right';
             end            
+        end
+        
+        function obj = set.buffer_dist(obj, newBufferDist)
+            obj.buffer_dist = newBufferDist;
+        end
+
+        function obj = set.look_ahead_dist(obj, newLookaheadDist)
+            obj.look_ahead_dist = newLookaheadDist;
         end
 
     end
