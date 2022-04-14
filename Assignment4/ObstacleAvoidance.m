@@ -31,7 +31,7 @@ classdef ObstacleAvoidance
 
     methods
         function obj = ObstacleAvoidance()
-            obj.LidarScanFig = figure('Position',[960, 500, 960, 500]);
+            obj.LidarScanFig = figure('Position',[960, 540, 960, 450]);
             title("Robot Lidar Scan and Obstacle Avoidance Areas");
             % Plot Robot Size
             y1=-(obj.robot_width)/2;
@@ -54,7 +54,7 @@ classdef ObstacleAvoidance
             
             % Plot Lidar Points
             obj.LidarScanPlot = scatter(0, 0);
-            obj.LidarScanAnno = annotation('textbox',[0 0 .3 .3],'String','Straight','FitBoxToText','on');
+            %obj.LidarScanAnno = annotation('textbox',[0 0 .3 .3],'String','Straight','FitBoxToText','on');
             xlim([-1 4]); ylim([-2,2]); grid on;
         end
 

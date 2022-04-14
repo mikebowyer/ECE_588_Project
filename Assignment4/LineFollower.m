@@ -13,7 +13,7 @@ classdef LineFollower
     methods
 
         function obj = LineFollower()
-            obj.ImgFig = figure('Position',[0, 540, 960, 540]);
+            obj.ImgFig = figure('Position',[0, 540, 960, 450]);
             obj.EdgePlot = imshow([]);
         end
 
@@ -50,6 +50,7 @@ classdef LineFollower
             [theta, intercept_pixel, extent_points] = obj.calcBestFitLineInfo(lineBestFitPoints, img_height);
             [lin_vel, ang_vel] = obj.calcCmdVelMsg(intercept_pixel, theta, img_width);
             %obj.lastDirection = direction;
+            set(obj.ImgFig,'Name', strcat('Line following: line angle:  ', string(theta), ', line intercept:  ', string(intercept_pixel),'(horizontal pixels)'));
         end
 
         function img_out = CleanUpImage(obj,image_compressed)

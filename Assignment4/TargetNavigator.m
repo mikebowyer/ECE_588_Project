@@ -36,7 +36,7 @@ classdef TargetNavigator
             obj.initial_y = initial_odom_data.Pose.Pose.Position.Y;
 
             % Target Fig
-            obj.TargFig = figure('Position',[[0, 0], 960, 540]);
+            obj.TargFig = figure('Position',[[0, 0], 960, 450]);
             title("Robot Start, Target, and Current Position");
             obj.TargPosPlot = scatter(0,0,1000,'green','x'); hold on;
             obj.InitPosPlot = scatter(obj.initial_x,obj.initial_y,1000,'red','x');hold on;
@@ -49,7 +49,7 @@ classdef TargetNavigator
 %             obj.odomTrajPlot = scatter(obj.relative_x,obj.relative_y,[],'green','filled'); grid on;  hold on;
 %             title("Robot Historical Trajectory");
 
-            obj.TargAnno = annotation('textbox',[.0 .0 .5 .3],'String','Initializing','FitBoxToText','on');
+            %obj.TargAnno = annotation('textbox',[.0 .0 .5 .3],'String','Initializing','FitBoxToText','on');
         end
 
         function [lin_vel, ang_vel, dist_to_targ] = CalcWayPointNavVels(obj, odom_data, targ_pose, curr_time)
@@ -62,9 +62,10 @@ classdef TargetNavigator
             else
                 lin_vel = obj.lin_pid.CalcLinVel(curr_time, dist_to_targ);
                 ang_vel = obj.ang_pid.CalcAngVel(curr_time, ang_to_targ);
-                display_string = strcat(["DistToTarg: " dist_to_targ, "AngToTarg: " ang_to_targ, "LinVel: " lin_vel, "AngVel:" ang_vel]);
+                display_string = strcat("DistToTarg: ", string(dist_to_targ), "AngToTarg: ", string(ang_to_targ), "LinVel: ", string(lin_vel), "AngVel:", string(ang_vel));
             end
-            set(obj.TargAnno,'String', display_string);
+            %set(obj.TargAnno,'String', display_string);
+            set(obj.TargFig,'Name', string(display_string));
         end 
         
         function [delta_dist, delta_theta] = CalcDeltaPoseToTarget(obj, odom_data, targ_pose)

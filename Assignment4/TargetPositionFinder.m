@@ -24,7 +24,7 @@ classdef TargetPositionFinder
 
     methods
         function obj = TargetPositionFinder()
-            obj.ImgFig = figure('Position',[960, 0, 960, 540]);
+            obj.ImgFig = figure('Position',[960, 0, 960, 450]);
             subplot(211);
             obj.EdgePlot = imshow([]);
             subplot(212);
@@ -59,10 +59,12 @@ classdef TargetPositionFinder
                 xGlobal = potentialXGlobal;
                 yGlobal = potentialYGlobal;
                 targetFound = true;
+                set(obj.ImgFig,'Name', strcat('Target searching: verified target and locked on. Distance to target:  ', string(rangeToTarget)));
             else
                 targetFound = false;
                 xGlobal = NaN;
                 yGlobal = NaN;
+                set(obj.ImgFig,'Name', strcat('Target searching: potential target found at angle:  ', string(angleOfTargetFromGlobalXaxis), ', range:  ', string(rangeToTarget)));
             end
         end
 
@@ -118,9 +120,9 @@ classdef TargetPositionFinder
                 image = insertShape(image,'circle',[ellipseX ellipseY bestFits(1,3)],'LineWidth',5);
             end
             set(obj.EdgePlot, 'CData', bw_Canny);
-            title('Target Edge Canny Output');
+            %title('Target Edge Canny Output');
             set(obj.EllipPlot, 'CData', image);
-            title('Target Image Finder');
+            %title('Target Image Finder');
         end
     end
 end
