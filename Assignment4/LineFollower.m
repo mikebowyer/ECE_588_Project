@@ -13,7 +13,7 @@ classdef LineFollower
     methods
 
         function obj = LineFollower()
-            obj.ImgFig = figure('Position',[0, 540, 960, 450]);
+            obj.ImgFig = figure('Position',[0, 550, 960, 450]);
             obj.EdgePlot = imshow([]);
         end
 

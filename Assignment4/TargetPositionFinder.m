@@ -24,7 +24,7 @@ classdef TargetPositionFinder
 
     methods
         function obj = TargetPositionFinder()
-            obj.ImgFig = figure('Position',[960, 0, 960, 450]);
+            obj.ImgFig = figure('Position',[960, 20, 960, 450]);
             subplot(211);
             obj.EdgePlot = imshow([]);
             subplot(212);
@@ -49,10 +49,10 @@ classdef TargetPositionFinder
             else
                 rangeToTarget = scan_data.Ranges(length(scan_data.Ranges) + targetAngle);
             end
-            fprintf(strcat('Distance to target: ', string(rangeToTarget), '\n'));
+            %fprintf(strcat('Distance to target: ', string(rangeToTarget), '\n'));
             %Next step, convert target coordinates to global coordinates 
             angleOfTargetFromGlobalXaxis = deg2rad(targetAngle) + robotCurrentAngle;
-            fprintf(strcat('Global angle: ', string(angleOfTargetFromGlobalXaxis),' Angle to target: ', string(targetAngle), ' Robot heading: ', string(robotCurrentAngle), '\n'));
+            %fprintf(strcat('Global angle: ', string(angleOfTargetFromGlobalXaxis),' Angle to target: ', string(targetAngle), ' Robot heading: ', string(robotCurrentAngle), '\n'));
             potentialXGlobal = (rangeToTarget * cos(angleOfTargetFromGlobalXaxis)) + robotCurrentPosX;
             potentialYGlobal = rangeToTarget * sin(angleOfTargetFromGlobalXaxis) + robotCurrentPosY;
             if obj.TargetDebouncer(potentialXGlobal, potentialYGlobal)

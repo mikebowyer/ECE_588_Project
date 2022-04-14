@@ -31,7 +31,7 @@ classdef ObstacleAvoidance
 
     methods
         function obj = ObstacleAvoidance()
-            obj.LidarScanFig = figure('Position',[960, 540, 960, 450]);
+            obj.LidarScanFig = figure('Position',[960, 550, 960, 450]);
             title("Robot Lidar Scan and Obstacle Avoidance Areas");
             % Plot Robot Size
             y1=-(obj.robot_width)/2;
@@ -56,6 +56,7 @@ classdef ObstacleAvoidance
             obj.LidarScanPlot = scatter(0, 0);
             %obj.LidarScanAnno = annotation('textbox',[0 0 .3 .3],'String','Straight','FitBoxToText','on');
             xlim([-1 4]); ylim([-2,2]); grid on;
+            legend('Obstacle Avoidance Buffer', 'Robot Size', 'Lidar points');
         end
 
         function [obj_in_way, lin_vel, ang_vel] = calcObstAvoidVels(obj, scan_data)
@@ -81,7 +82,7 @@ classdef ObstacleAvoidance
             data = readCartesian(scan_data);
             set(obj.LidarScanPlot,'XData',data(:,1),'YData', data(:,2));
             
-            legend('Obstacle Avoidance Buffer', 'Robot Size', 'Lidar points');
+            
             stringToWrite = '';
             if strcmp(turn_dir, 'straight')
                 stringToWrite = 'Object In the way: False   Turning Away from Object: NA';

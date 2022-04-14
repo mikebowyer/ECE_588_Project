@@ -36,7 +36,7 @@ classdef TargetNavigator
             obj.initial_y = initial_odom_data.Pose.Pose.Position.Y;
 
             % Target Fig
-            obj.TargFig = figure('Position',[[0, 0], 960, 450]);
+            obj.TargFig = figure('Position',[[0, 20], 960, 450]);
             title("Robot Start, Target, and Current Position");
             obj.TargPosPlot = scatter(0,0,1000,'green','x'); hold on;
             obj.InitPosPlot = scatter(obj.initial_x,obj.initial_y,1000,'red','x');hold on;
