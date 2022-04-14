@@ -50,7 +50,7 @@ classdef LineFollower
             [theta, intercept_pixel, extent_points] = obj.calcBestFitLineInfo(lineBestFitPoints, img_height);
             [lin_vel, ang_vel] = obj.calcCmdVelMsg(intercept_pixel, theta, img_width);
             %obj.lastDirection = direction;
-            set(obj.ImgFig,'Name', strcat('Line following: line angle:  ', string(theta), ', line intercept:  ', string(intercept_pixel),'(horizontal pixels)'));
+            set(obj.ImgFig,'Name', strcat('Line following: line angle:  ', num2str(theta), ', line intercept:  ', num2str(intercept_pixel),'(horizontal pixels)'));
         end
 
         function img_out = CleanUpImage(obj,image_compressed)
