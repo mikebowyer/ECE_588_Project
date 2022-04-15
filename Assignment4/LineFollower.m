@@ -36,7 +36,7 @@ classdef LineFollower
             end
             
             %direction = obj.GetDirectionFromHorizontalLines(img_width, horizontalLines, obj.lastDirection);
-
+            set(obj.EdgePlot, 'CData', imageWithLines);
             % Getting Line of Best Fit from Hough Lines
             if (length(lines) == 0) || ~sufficientPixels
                 lin_vel = .01;
@@ -67,7 +67,7 @@ classdef LineFollower
         function greenPoints = GetGreenPoints(obj, originalImage)
             redLowerBound =40;% 
             redUpperBound =120;%
-            greenLowerBound =90;% 
+            greenLowerBound =80;% 
             greenUpperBound =130;%
             blueLowerBound =30;% 
             blueUpperBound =60;% 

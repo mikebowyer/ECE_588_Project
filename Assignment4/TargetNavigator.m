@@ -38,10 +38,12 @@ classdef TargetNavigator
             % Target Fig
             obj.TargFig = figure('Position',[[0, 20], 960, 450]);
             title("Robot Start, Target, and Current Position");
-            obj.TargPosPlot = scatter(0,0,1000,'green','x'); hold on;
+            obj.TargPosPlot = scatter(obj.initial_x,obj.initial_y,1000,'green','x'); hold on;
             obj.InitPosPlot = scatter(obj.initial_x,obj.initial_y,1000,'red','x');hold on;
             obj.CurPosPlot = scatter(obj.initial_x,obj.initial_y,1000,'yellow','x');hold on;
             legend("Target Position", "Starting Position","Robot Position"); grid on;
+            xlim([obj.initial_x - 1, obj.initial_x + 2.5]);
+            ylim([obj.initial_y - 1, obj.initial_y + 2.5]);
             
 %             obj.odomTrajFig = figure('Position',[50, 50, 550, 550]);
 %             obj.relative_x = [obj.initial_x];
@@ -57,7 +59,7 @@ classdef TargetNavigator
             
             if dist_to_targ < obj.stop_dist_thresh
                 lin_vel = 0;
-                ang_vel = 0;
+                ang_vel = obj.ang_pid.CalcAngVel(curr_time, ang_to_targ);
                 display_string = "Target Reached! Stopping!";
             else
                 lin_vel = obj.lin_pid.CalcLinVel(curr_time, dist_to_targ);
@@ -86,7 +88,7 @@ classdef TargetNavigator
             delta_dist = sqrt(d_x^2 + d_y^2);
         end
 
-        function PlotTarget(obj, odom_data, target_data)
+        function PlotTarget(obj, odom_data, target_data, target_found)
             current_pose = odom_data.Pose.Pose;
             
             % Update Target Figure 
@@ -100,7 +102,9 @@ classdef TargetNavigator
             % Update Target Odom Data
             obj.targ_x = target_data.Position.X;
             obj.targ_y = target_data.Position.Y;
-            set(obj.TargPosPlot,'XData',obj.targ_x,'YData',obj.targ_y);
+            if target_found
+             set(obj.TargPosPlot,'XData',obj.targ_x,'YData',obj.targ_y);
+            end
         end
 
     end

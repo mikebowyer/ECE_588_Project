@@ -2,7 +2,7 @@ clear all;
 rosshutdown;
 %ip_TurtleBot = '127.0.0.1';    
 %ip_Matlab = '127.0.0.1 ';  
-ip_TurtleBot = '10.0.1.57';    
+ip_TurtleBot = '10.0.1.2';    
 ip_Matlab = '10.0.1.54'; 
 setenv('ROS_MASTER_URI', strcat('http://', ip_TurtleBot,':11311'))
 setenv('ROS_IP', ip_Matlab)
@@ -24,8 +24,8 @@ image_sub = rossubscriber(TurtleBot_Topic.picam);
 %% Target Parameters
 [targ_pose_pub,targ_pose] = rospublisher("/pose","geometry_msgs/Pose","DataFormat","struct");
 target_found = false;
-targ_pose.Position.X = 3;
-targ_pose.Position.Y = 1.75;
+targ_pose.Position.X = 0;
+targ_pose.Position.Y = 0;
 %% Run Main Robot Control Loop
 close all
 
@@ -54,7 +54,7 @@ tic
 while true
     % Get Odom and Plot Target
     odom_data = receive(odom_sub);
-    target_nav.PlotTarget(odom_data, targ_pose)
+    target_nav.PlotTarget(odom_data, targ_pose, target_found)
     
     % Detect and avoid objects
     scan_data = receive(laser_sub);
@@ -75,9 +75,9 @@ while true
             curr_time = toc;
             [lin_vel , ang_vel, dist_to_targ] =target_nav.CalcWayPointNavVels(odom_data, targ_pose, curr_time);
             if dist_to_targ < 0.35
-                obst_avoid.buffer_dist = 0.1;
-                obst_avoid.look_ahead_dist = 0.1;
+                obst_avoid.buffer_dist = 0.05;               
             end
+            obst_avoid.look_ahead_dist = min(max(dist_to_targ - 0.25, 0.02),0.2);
         else
             % Follow Lines
             [lin_vel , ang_vel] = line_follower.CalcLineFollowVels(image_compressed);

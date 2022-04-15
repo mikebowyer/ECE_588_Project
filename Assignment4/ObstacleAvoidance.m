@@ -26,6 +26,7 @@ classdef ObstacleAvoidance
         LidarScanFig
         LidarScanPlot
         LidarScanAnno
+        rectBufferPlot
 
     end
 
@@ -44,19 +45,14 @@ classdef ObstacleAvoidance
             hold on;
         
             % Plot Look Ahead Rectangle
-            y1=-(obj.robot_width + obj.buffer_dist)/2;
-            y2=(obj.robot_width + obj.buffer_dist)/2;
-            x1=obj.dist_lidar_to_robot_front;
-            x2=obj.dist_lidar_to_robot_front + obj.look_ahead_dist;
-            x = [x1, x2, x2, x1, x1];
-            y = [y1, y1, y2, y2, y1];
-            plot(x, y, 'b-', 'LineWidth', 3);
+            [x, y] = obj.bufferRectcalc(obj.buffer_dist, obj.look_ahead_dist);
+            obj.rectBufferPlot = plot(x, y, 'b-', 'LineWidth', 3);
             
             % Plot Lidar Points
             obj.LidarScanPlot = scatter(0, 0);
             %obj.LidarScanAnno = annotation('textbox',[0 0 .3 .3],'String','Straight','FitBoxToText','on');
             xlim([-1 4]); ylim([-2,2]); grid on;
-            legend('Obstacle Avoidance Buffer', 'Robot Size', 'Lidar points');
+            legend('Robot Size', 'Obstacle Avoidance Buffer', 'Lidar points');
         end
 
         function [obj_in_way, lin_vel, ang_vel] = calcObstAvoidVels(obj, scan_data)
@@ -81,7 +77,8 @@ classdef ObstacleAvoidance
             %Plot it
             data = readCartesian(scan_data);
             set(obj.LidarScanPlot,'XData',data(:,1),'YData', data(:,2));
-            
+            [x, y] = obj.bufferRectcalc(obj.buffer_dist, obj.look_ahead_dist);
+            set(obj.rectBufferPlot, 'XData', x, 'YData', y);
             
             stringToWrite = '';
             if strcmp(turn_dir, 'straight')
@@ -127,12 +124,12 @@ classdef ObstacleAvoidance
             if ~obj_to_left && ~obj_to_right
                 dir_to_turn = 'straight';   
                 obj.resetBackForthCount();
-            elseif obj_to_left && obj_to_right
+            else %obj_to_left && obj_to_right
                 dir_to_turn = obj.calcBestDirToTurn(scan_data);
-            elseif obj_to_left
-                dir_to_turn = 'right';
-            else
-                dir_to_turn = 'left';
+%             elseif obj_to_left
+%                 dir_to_turn = 'right';
+%             else
+%                 dir_to_turn = 'left';
             end
 
             if ~strcmp(dir_to_turn, obj.previous_direction) && ~strcmp(dir_to_turn, 'straight') && ~strcmp('straight', obj.previous_direction)
@@ -170,6 +167,15 @@ classdef ObstacleAvoidance
 
         function obj = set.look_ahead_dist(obj, newLookaheadDist)
             obj.look_ahead_dist = newLookaheadDist;
+        end
+        
+        function [x, y] = bufferRectcalc(obj, bufferDist, lookAheadDist)
+            y1=-(obj.robot_width + obj.buffer_dist)/2;
+            y2=(obj.robot_width + obj.buffer_dist)/2;
+            x1=obj.dist_lidar_to_robot_front;
+            x2=obj.dist_lidar_to_robot_front + obj.look_ahead_dist;
+            x = [x1, x2, x2, x1, x1];
+            y = [y1, y1, y2, y2, y1];
         end
 
     end
